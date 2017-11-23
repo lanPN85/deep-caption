@@ -3,7 +3,7 @@ sys.path.append('.')
 import numpy as np
 
 from caption.model import CaptionModel
-from caption.settings import VGG_TRUNC, LSTM1
+from caption.topologies import VGG_TRUNC, LSTM1
 
 m = CaptionModel(VGG_TRUNC, LSTM1)
 

@@ -3,4 +3,5 @@ keras
 tensorflow
 nltk
 numpy
+h5py
 git+https://github.com/farizrahman4u/recurrentshop.git

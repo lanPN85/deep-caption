@@ -1,2 +1,70 @@
+from argparse import ArgumentParser
+from keras.optimizers import RMSprop
+
+import os
+
+from caption import CaptionModel, Vocab
+from caption.topologies import *
+from caption import utils
 
 
+DEFAULT_LR = 0.001
+DEFAULT_DROPOUT = 0.0
+DEFAULT_SENTENCE_LEN = 30
+DEFAULT_EPOCHS = 100
+DEFAULT_BATCH = 16
+
+IMAGE_SIZE = (128, 128)
+
+CONV_TOPO = VGG
+LSTM_TOPO = LSTM2
+
+
+def parse_arguments():
+    parser = ArgumentParser()
+
+    parser.add_argument('--lr', default=DEFAULT_LR, type=float, dest='LR')
+    parser.add_argument('--dropout', default=DEFAULT_DROPOUT, type=float, dest='DROPOUT')
+    parser.add_argument('--train-dir', default='./data/captions/train', dest='TRAIN_DIR')
+    parser.add_argument('--val-dir', default='./data/captions/val', dest='VAL_DIR')
+    parser.add_argument('--test-dir', default='./data/captions/test', dest='TEST_DIR')
+    parser.add_argument('--model-dir', '-md', default='./models/default', dest='MODEL_DIR')
+    parser.add_argument('--sent-len', '-sl', default=DEFAULT_SENTENCE_LEN, type=int, dest='SENTENCE_LEN')
+    parser.add_argument('--epochs', '-e', default=DEFAULT_EPOCHS, type=int, dest='EPOCHS')
+    parser.add_argument('--from', default=0, type=int, dest='FROM')
+    parser.add_argument('--batch-size', default=DEFAULT_BATCH, type=int, dest='BATCH')
+
+    return parser.parse_args()
+
+
+def main(args):
+    print('Fetching image paths...')
+    train_img = utils.get_image_paths(os.path.join(args.TRAIN_DIR, 'images'))
+    val_img = utils.get_image_paths(os.path.join(args.VAL_DIR, 'images'))
+    test_img = utils.get_image_paths(os.path.join(args.TEST_DIR, 'images'))
+
+    print('Reading captions...')
+    train_docs = utils.get_captions(os.path.join(args.TRAIN_DIR, 'captions.txt'))
+    val_docs = utils.get_captions(os.path.join(args.VAL_DIR, 'captions.txt'))
+    test_docs = utils.get_captions(os.path.join(args.TEST_DIR, 'captions.txt'))
+
+    print('Building vocabulary...')
+    vocab = Vocab(train_docs)
+    vocab.build()
+
+    print('Creating model...')
+    model = CaptionModel(CONV_TOPO, LSTM_TOPO, vocab, img_size=IMAGE_SIZE,
+                         sentence_len=args.SENTENCE_LEN, dropout=args.DROPOUT,
+                         save_dir=args.MODEL_DIR)
+    model.summary()
+
+    print('Compiling...')
+    model.compile(RMSprop(lr=args.LR))
+
+    print('Starting training...')
+    model.train(train_img, train_docs, val_img, val_docs, epochs=args.EPOCHS,
+                batch_size=args.BATCH, initial_epoch=args.FROM)
+
+
+if __name__ == '__main__':
+    main(parse_arguments())
