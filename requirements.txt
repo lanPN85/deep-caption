@@ -1,0 +1,6 @@
+Pillow
+keras
+tensorflow
+nltk
+numpy
+git+https://github.com/farizrahman4u/recurrentshop.git
