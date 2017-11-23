@@ -25,9 +25,8 @@ def parse_arguments():
 
     parser.add_argument('--lr', default=DEFAULT_LR, type=float, dest='LR')
     parser.add_argument('--dropout', default=DEFAULT_DROPOUT, type=float, dest='DROPOUT')
-    parser.add_argument('--train-dir', default='./data/captions/train', dest='TRAIN_DIR')
-    parser.add_argument('--val-dir', default='./data/captions/val', dest='VAL_DIR')
-    parser.add_argument('--test-dir', default='./data/captions/test', dest='TEST_DIR')
+    parser.add_argument('--train-dir', default='./data/coco/train2014', dest='TRAIN_DIR')
+    parser.add_argument('--val-dir', default='./data/coco/val2014', dest='VAL_DIR')
     parser.add_argument('--model-dir', '-md', default='./models/default', dest='MODEL_DIR')
     parser.add_argument('--sent-len', '-sl', default=DEFAULT_SENTENCE_LEN, type=int, dest='SENTENCE_LEN')
     parser.add_argument('--epochs', '-e', default=DEFAULT_EPOCHS, type=int, dest='EPOCHS')
@@ -39,31 +38,33 @@ def parse_arguments():
 
 def main(args):
     print('Fetching image paths...')
-    train_img = utils.get_image_paths(os.path.join(args.TRAIN_DIR, 'images'))
-    val_img = utils.get_image_paths(os.path.join(args.VAL_DIR, 'images'))
-    test_img = utils.get_image_paths(os.path.join(args.TEST_DIR, 'images'))
+    train_img = utils.get_image_paths(args.TRAIN_DIR)[:1000]
+    val_img = utils.get_image_paths(args.VAL_DIR)[:1000]
 
     print('Reading captions...')
-    train_docs = utils.get_captions(os.path.join(args.TRAIN_DIR, 'captions.txt'))
-    val_docs = utils.get_captions(os.path.join(args.VAL_DIR, 'captions.txt'))
-    test_docs = utils.get_captions(os.path.join(args.TEST_DIR, 'captions.txt'))
+    train_docs = utils.get_captions(os.path.join(args.TRAIN_DIR, 'captions.txt'), train_img)
+    val_docs = utils.get_captions(os.path.join(args.VAL_DIR, 'captions.txt'), val_img)
 
     print('Building vocabulary...')
-    vocab = Vocab(train_docs)
-    vocab.build()
+    vocab = Vocab()
+    vocab.build(train_docs)
 
     print('Creating model...')
     model = CaptionModel(CONV_TOPO, LSTM_TOPO, vocab, img_size=IMAGE_SIZE,
                          sentence_len=args.SENTENCE_LEN, dropout=args.DROPOUT,
                          save_dir=args.MODEL_DIR)
+    model.build()
     model.summary()
 
     print('Compiling...')
     model.compile(RMSprop(lr=args.LR))
 
     print('Starting training...')
-    model.train(train_img, train_docs, val_img, val_docs, epochs=args.EPOCHS,
-                batch_size=args.BATCH, initial_epoch=args.FROM)
+    try:
+        model.train(train_img, train_docs, val_img, val_docs, epochs=args.EPOCHS,
+                    batch_size=args.BATCH, initial_epoch=args.FROM)
+    except KeyboardInterrupt:
+        print('\nTraining interrupted.')
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense
 from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
+from keras.callbacks import EarlyStopping, CSVLogger
 from recurrentshop import RecurrentSequential, LSTMCell
 
 import math
@@ -11,6 +12,8 @@ import keras.models
 
 from . import utils
 from .callbacks import CaptionCallback
+from .vocab import Vocab
+
 
 class CaptionModel:
     def __init__(self, conv_layers, lstm_layers, vocab, img_size=(128, 128),
@@ -26,7 +29,7 @@ class CaptionModel:
         self.seq_model = None
         self.model = Sequential()
 
-    def build(self, vocab_size, readout=False):
+    def build(self, readout=False):
         self.seq_model = Sequential()
 
         out_row, out_col = self.img_size
@@ -64,10 +67,10 @@ class CaptionModel:
                                 recurrent_dropout=self.dropout))
 
         if readout:
-            assert self.lstm_layers[-1]['units'] == vocab_size
+            assert self.lstm_layers[-1]['units'] == self.vocab.size
         rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
                                   readout=readout)
-        rnn.add(LSTMCell(vocab_size, activation='softmax'))
+        rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
         self.seq_model.add(rnn)
         self.model = self.seq_model
 
@@ -77,30 +80,59 @@ class CaptionModel:
 
     def train(self, img_paths, captions, val_img, val_captions,
               epochs=100, batch_size=10, initial_epoch=0):
+        os.makedirs(self.save_dir, exist_ok=True)
+
         per_epoch = math.ceil(len(captions) / batch_size)
         val_per_epoch = math.ceil(len(val_captions) / batch_size)
-        callbacks = [CaptionCallback(self, monitor='val_loss')]
+        callbacks = [CaptionCallback(self, monitor='loss'),
+                     EarlyStopping(monitor='loss', patience=4, verbose=1),
+                     CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
 
         self.model.fit_generator(self._generate_batch(img_paths, captions, batch_size),
                                  per_epoch, shuffle=False, max_queue_size=3, epochs=epochs, initial_epoch=initial_epoch,
                                  validation_data=self._generate_batch(val_img, val_captions, batch_size),
                                  validation_steps=val_per_epoch, callbacks=callbacks)
 
+    def evaluate(self, test_img, test_captions, batch_size=10):
+        steps = math.ceil(len(test_captions) / batch_size)
+        metrics = self.model.evaluate_generator(self._generate_batch(test_img, test_captions, batch_size),
+                                                steps=steps, max_queue_size=3)
+        return metrics
+
+    def caption(self, image):
+        if type(image) == str:
+            return self.caption(utils.load_image(image, self.img_size))
+        else:
+            assert image.shape[0] == self.img_size[0]
+            assert image.shape[1] == self.img_size[1]
+
+            m = np.zeros((1, self.img_size[0], self.img_size[1], 3))
+            m[0, :, :, :] = image
+            probs = self.model.predict(m, batch_size=1, verbose=0)
+            word_idx = np.argmax(probs, axis=-1)
+            caption = ''
+            for id in word_idx:
+                word = self.vocab[id]
+                if word == Vocab.END_TOKEN:
+                    break
+                caption += word + ' '
+            return caption
+
     def _generate_batch(self, img_paths, captions, batch_size):
         while True:
             for i in range(batch_size, len(captions), batch_size):
-                _img_paths = img_paths[i-batch_size:i]
-                _captions = captions[i-batch_size:i]
+                _img_paths = img_paths[i - batch_size:i]
+                _captions = captions[i - batch_size:i]
 
-                _img_mat = np.zeros((batch_size, self.img_size, self.img_size, 3))
+                _img_mat = np.zeros((batch_size, self.img_size[0], self.img_size[1], 3))
                 for j, _path in enumerate(_img_paths):
                     _img_mat[j, :, :] = utils.load_image(_path, size=self.img_size)
 
                 _cap_mat = np.zeros((batch_size, self.sentence_len, self.vocab.size))
-                _cap_mask = np.zeros((batch_size, self.sentence_len, 1))
+                _cap_mask = np.zeros((batch_size, self.sentence_len))
                 for j, _caption in enumerate(_captions):
                     _cap_mat[j, :, :] = self.vocab.encode_sentence(_caption, length=self.sentence_len)
-                    _cap_mask[j, :, :] = self.vocab.mask_sentence(_caption, length=self.sentence_len)
+                    _cap_mask[j, :] = self.vocab.mask_sentence(_caption, length=self.sentence_len)
 
                 yield _img_mat, _cap_mat, _cap_mask
 

@@ -16,13 +16,25 @@ def load_image(path, size=(128, 128)):
 
 def get_image_paths(directory, extensions=('png', 'jpg')):
     files = os.listdir(directory)
+    files = list(map(lambda x: os.path.join(directory, x), files))
     img_files = list(filter(lambda x: x.split('.')[-1] in extensions, files))
     return img_files
 
 
-def get_captions(filepath):
+def get_captions(filepath, img_paths):
+    path2cap = {}
     with open(filepath, 'rt') as f:
-        lines = f.readlines()
+        for line in f:
+            cols = line.split('\t')
+            if len(cols) < 2:
+                continue
+            path2cap[cols[0]] = cols[1].strip()
+
+    captions = []
+    for ip in img_paths:
+        fname = os.path.split(ip)[1]
+        captions.append(path2cap[fname])
+    return captions
 
 
 if __name__ == '__main__':

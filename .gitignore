@@ -1,9 +1,11 @@
 # Created by .ignore support plugin (hsz.mobi)
 
 .idea/
-data/
+data/coco/*
 !data/stub
 !data/*.py
+!data/coco/download.sh
+models/
 
 ### Python template
 # Byte-compiled / optimized / DLL files
