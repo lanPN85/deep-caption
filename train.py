@@ -13,6 +13,7 @@ DEFAULT_DROPOUT = 0.0
 DEFAULT_SENTENCE_LEN = 30
 DEFAULT_EPOCHS = 100
 DEFAULT_BATCH = 16
+DEFAULT_VOCAB_LIMIT = 5000
 
 IMAGE_SIZE = (128, 128)
 
@@ -33,6 +34,7 @@ def parse_arguments():
     parser.add_argument('--from', default=0, type=int, dest='FROM')
     parser.add_argument('--batch-size', default=DEFAULT_BATCH, type=int, dest='BATCH')
     parser.add_argument('--cutoff', default=None, type=int, dest='CUTOFF')
+    parser.add_argument('--vocab', default=DEFAULT_VOCAB_LIMIT, type=int, dest='VLIMIT')
 
     return parser.parse_args()
 
@@ -51,7 +53,8 @@ def main(args):
 
     print('Building vocabulary...')
     vocab = Vocab()
-    vocab.build(train_docs)
+    vocab.build(train_docs, limit=args.VLIMIT)
+    print(' Vocabulary size: %d' % vocab.size)
 
     print('Creating model...')
     model = CaptionModel(CONV_TOPO, LSTM_TOPO, vocab, img_size=IMAGE_SIZE,
