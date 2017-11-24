@@ -32,14 +32,18 @@ def parse_arguments():
     parser.add_argument('--epochs', '-e', default=DEFAULT_EPOCHS, type=int, dest='EPOCHS')
     parser.add_argument('--from', default=0, type=int, dest='FROM')
     parser.add_argument('--batch-size', default=DEFAULT_BATCH, type=int, dest='BATCH')
+    parser.add_argument('--cutoff', default=None, type=int, dest='CUTOFF')
 
     return parser.parse_args()
 
 
 def main(args):
     print('Fetching image paths...')
-    train_img = utils.get_image_paths(args.TRAIN_DIR)[:1000]
-    val_img = utils.get_image_paths(args.VAL_DIR)[:1000]
+    train_img = utils.get_image_paths(args.TRAIN_DIR)
+    val_img = utils.get_image_paths(args.VAL_DIR)
+    if args.CUTOFF is not None:
+        train_img = train_img[:args.CUTOFF]
+        val_img = val_img[:args.CUTOFF]
 
     print('Reading captions...')
     train_docs = utils.get_captions(os.path.join(args.TRAIN_DIR, 'captions.txt'), train_img)
