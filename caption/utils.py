@@ -2,6 +2,7 @@ from PIL import Image
 
 import numpy as np
 import os
+import json
 
 
 def load_image(path, size=(128, 128)):
@@ -21,9 +22,24 @@ def get_image_paths(directory, extensions=('png', 'jpg')):
     return img_files
 
 
-def get_captions(filepath, img_paths):
+def get_image_ids(annotation_path, img_paths):
+    with open(annotation_path, 'rt') as f:
+        js = json.load(f)
+        name2id = {}
+        for image in js['images']:
+            name2id[image['file_name']] = image['id']
+
+        ids = []
+        for img in img_paths:
+            fname = os.path.split(img)[-1]
+            ids.append(name2id[fname])
+
+        return ids
+
+
+def get_captions(captions_path, img_paths):
     path2cap = {}
-    with open(filepath, 'rt') as f:
+    with open(captions_path, 'rt') as f:
         for line in f:
             cols = line.split('\t')
             if len(cols) < 2:

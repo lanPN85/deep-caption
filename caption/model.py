@@ -7,6 +7,7 @@ from recurrentshop import RecurrentSequential, LSTMCell
 import math
 import numpy as np
 import os
+import json
 import pickle
 import keras.models
 
@@ -111,12 +112,48 @@ class CaptionModel:
             probs = self.model.predict(m, batch_size=1, verbose=0)
             word_idx = np.argmax(probs, axis=-1)
             caption = ''
-            for id in word_idx:
-                word = self.vocab[id]
+            # noinspection PyTypeChecker
+            for idx in word_idx[0]:
+                word = self.vocab[idx]
                 if word == Vocab.END_TOKEN:
                     break
                 caption += word + ' '
             return caption
+
+    def caption_batch(self, images, image_ids=None, to_json=False,
+                      json_file=None, batch_size=32, verbose=1):
+        _im = np.zeros((len(images), self.img_size[0], self.img_size[1], 3))
+        for i, img in enumerate(images):
+            if type(img) == str:
+                _im[i, :, :, :] = utils.load_image(img, self.img_size)
+            else:
+                _im[i, :, :, :] = img
+
+        m = np.zeros((len(images), self.img_size[0], self.img_size[1], 3))
+        probs = self.model.predict(_im, batch_size=batch_size, verbose=verbose)
+        word_idx = np.argmax(probs, axis=-1)
+        captions = []
+        for i in range(len(images)):
+            _caption = ''
+            for idx in word_idx[i, :]:
+                word = self.vocab[idx]
+                if word == Vocab.END_TOKEN:
+                    break
+                _caption += word + ' '
+            captions.append(_caption)
+
+        if not to_json:
+            return captions
+        else:
+            assert len(captions) == len(image_ids)
+            jd = []
+            for _caption, _id in zip(captions, image_ids):
+                jd.append({'image_id': _id, 'caption': _caption})
+            if json_file is not None:
+                with open(json_file, 'wt') as f:
+                    json.dump(jd, f)
+
+            return json.dumps(jd)
 
     def _generate_batch(self, img_paths, captions, batch_size):
         while True:

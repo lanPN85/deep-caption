@@ -4,4 +4,6 @@ tensorflow
 nltk
 numpy
 h5py
+matplotlib
+scikit-image
 git+https://github.com/farizrahman4u/recurrentshop.git
