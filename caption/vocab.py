@@ -10,7 +10,7 @@ class Vocab:
         self._w2i = {self.NULL_TOKEN: 0, self.END_TOKEN: 1}
         self._i2w = [self.NULL_TOKEN, self.END_TOKEN]
 
-    def build(self, docs, reset=True):
+    def build(self, docs, reset=True, limit=20000):
         if reset:
             self._w2i = {self.NULL_TOKEN: 0, self.END_TOKEN: 1}
             self._i2w = [self.NULL_TOKEN, self.END_TOKEN]
@@ -20,6 +20,8 @@ class Vocab:
                 if w not in self._w2i.keys():
                     self._w2i[w] = len(self._i2w)
                     self._i2w.append(w)
+            if len(self._i2w) > limit:
+                break
 
     def encode_sentence(self, sentence, length=20):
         mat = np.zeros((length, self.size))
