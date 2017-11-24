@@ -10,7 +10,7 @@ class Vocab:
         self._w2i = {self.NULL_TOKEN: 0, self.END_TOKEN: 1}
         self._i2w = [self.NULL_TOKEN, self.END_TOKEN]
 
-    def build(self, docs, reset=True, limit=20000):
+    def build(self, docs, reset=True, limit=5000):
         if reset:
             self._w2i = {self.NULL_TOKEN: 0, self.END_TOKEN: 1}
             self._i2w = [self.NULL_TOKEN, self.END_TOKEN]
