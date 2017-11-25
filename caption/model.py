@@ -156,17 +156,18 @@ class CaptionModel:
             return json.dumps(jd)
 
     def _generate_batch(self, img_paths, captions, batch_size):
+        _img_mat = np.zeros((batch_size, self.img_size[0], self.img_size[1], 3))
+        _cap_mat = np.zeros((batch_size, self.sentence_len, self.vocab.size))
+        _cap_mask = np.zeros((batch_size, self.sentence_len))
+
         while True:
             for i in range(batch_size, len(captions), batch_size):
                 _img_paths = img_paths[i - batch_size:i]
                 _captions = captions[i - batch_size:i]
 
-                _img_mat = np.zeros((batch_size, self.img_size[0], self.img_size[1], 3))
                 for j, _path in enumerate(_img_paths):
                     _img_mat[j, :, :] = utils.load_image(_path, size=self.img_size)
 
-                _cap_mat = np.zeros((batch_size, self.sentence_len, self.vocab.size))
-                _cap_mask = np.zeros((batch_size, self.sentence_len))
                 for j, _caption in enumerate(_captions):
                     _cap_mat[j, :, :] = self.vocab.encode_sentence(_caption, length=self.sentence_len)
                     _cap_mask[j, :] = self.vocab.mask_sentence(_caption, length=self.sentence_len)
