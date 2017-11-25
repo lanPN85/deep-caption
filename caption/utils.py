@@ -55,5 +55,9 @@ def get_captions(captions_path, img_paths):
     return captions
 
 
+def char_tokenize(sentence):
+    return list(sentence)
+
+
 if __name__ == '__main__':
     a = load_image('../data/download.jpg')

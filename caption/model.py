@@ -178,17 +178,27 @@ class CaptionModel:
 
     def save(self):
         os.makedirs(self.save_dir, exist_ok=True)
+        f1 = open(os.path.join(self.save_dir, 'configs.pkl'), 'wb')
+        f2 = open(os.path.join(self.save_dir, 'vocab.pkl'), 'wb')
+
         self.model.save(os.path.join(self.save_dir, 'model.hdf5'))
         configs = (self.img_size, self.dropout, self.sentence_len, self.save_dir, self.conv_layers, self.lstm_layers)
-        pickle.dump(configs, os.path.join(self.save_dir, 'configs.pkl'))
-        pickle.dump(self.vocab, os.path.join(self.save_dir, 'vocab.pkl'))
+        pickle.dump(configs, f1)
+        pickle.dump(self.vocab, f2)
+        f1.close()
+        f2.close()
 
     @classmethod
     def load(cls, load_dir):
-        img_size, dropout, sentence_len, save_dir, conv_layers, lstm_layers = pickle.load(
-            os.path.join(load_dir, 'configs.pkl'))
-        vocab = pickle.load(os.path.join(load_dir, 'vocab.pkl'))
+        f1 = open(os.path.join(self.save_dir, 'configs.pkl'), 'rb')
+        f2 = open(os.path.join(self.save_dir, 'vocab.pkl'), 'rb')
+
+        img_size, dropout, sentence_len, save_dir, conv_layers, lstm_layers = pickle.load(f1)
+        vocab = pickle.load(f2)
         model = keras.models.load_model(os.path.join(load_dir, 'model.hdf5'))
+        f1.close()
+        f2.close()
+
         cm = cls(conv_layers, lstm_layers, vocab, img_size=(128, 128),
                  sentence_len=sentence_len, dropout=dropout, save_dir=save_dir)
         cm.model = model

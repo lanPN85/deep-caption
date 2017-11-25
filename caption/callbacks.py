@@ -12,5 +12,6 @@ class CaptionCallback(Callback):
         if logs[self._monitor] < self._best:
             self._best = logs[self._monitor]
             self._model.save()
+            print('\nSaved model to %s' % self.model.save_dir)
         else:
             print('\nNo improvement on model, skipping save...')

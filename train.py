@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from keras.optimizers import RMSprop
 
 import os
+import nltk
 
 from caption import CaptionModel, Vocab
 from caption.topologies import *
@@ -35,6 +36,7 @@ def parse_arguments():
     parser.add_argument('--batch-size', default=DEFAULT_BATCH, type=int, dest='BATCH')
     parser.add_argument('--cutoff', default=None, type=int, dest='CUTOFF')
     parser.add_argument('--vocab', default=DEFAULT_VOCAB_LIMIT, type=int, dest='VLIMIT')
+    parser.add_argument('--mode', default='word', dest='MODE')
 
     return parser.parse_args()
 
@@ -52,7 +54,14 @@ def main(args):
     val_docs = utils.get_captions(os.path.join(args.VAL_DIR, 'captions.txt'), val_img)
 
     print('Building vocabulary...')
-    vocab = Vocab()
+    if args.MODE == 'word':
+        tokenizer = nltk.word_tokenize
+    elif args.MODE == 'char':
+        tokenizer = utils.char_tokenize
+    else:
+        raise ValueError('Unknown mode %s.' % args.MODE)
+
+    vocab = Vocab(tokenizer=tokenizer)
     vocab.build(train_docs, limit=args.VLIMIT)
     print(' Vocabulary size: %d' % vocab.size)
 
