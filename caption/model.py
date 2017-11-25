@@ -90,7 +90,7 @@ class CaptionModel:
                      CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
 
         self.model.fit_generator(self._generate_batch(img_paths, captions, batch_size),
-                                 per_epoch, shuffle=False, max_queue_size=3, epochs=epochs, initial_epoch=initial_epoch,
+                                 per_epoch, shuffle=False, max_queue_size=1, epochs=epochs, initial_epoch=initial_epoch,
                                  validation_data=self._generate_batch(val_img, val_captions, batch_size),
                                  validation_steps=val_per_epoch, callbacks=callbacks)
 
