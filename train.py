@@ -4,10 +4,9 @@ from keras.optimizers import RMSprop
 import os
 import nltk
 
-from caption import CaptionModel, Vocab
+from caption import CaptionModel, DirectCaptionModel, Vocab
 from caption.topologies import *
 from caption import utils
-
 
 DEFAULT_LR = 0.001
 DEFAULT_DROPOUT = 0.0
@@ -37,6 +36,7 @@ def parse_arguments():
     parser.add_argument('--cutoff', default=None, type=int, dest='CUTOFF')
     parser.add_argument('--vocab', default=DEFAULT_VOCAB_LIMIT, type=int, dest='VLIMIT')
     parser.add_argument('--mode', default='word', dest='MODE')
+    parser.add_argument('--type', default='default', dest='TYPE')
 
     return parser.parse_args()
 
@@ -66,9 +66,13 @@ def main(args):
     print(' Vocabulary size: %d' % vocab.size)
 
     print('Creating model...')
-    model = CaptionModel(CONV_TOPO, LSTM_TOPO, vocab, img_size=IMAGE_SIZE,
-                         sentence_len=args.SENTENCE_LEN, dropout=args.DROPOUT,
-                         save_dir=args.MODEL_DIR)
+    if args.TYPE == 'direct':
+        model_cls = DirectCaptionModel
+    else:
+        model_cls = CaptionModel
+    model = model_cls(CONV_TOPO, LSTM_TOPO, vocab, img_size=IMAGE_SIZE,
+                      sentence_len=args.SENTENCE_LEN, dropout=args.DROPOUT,
+                      save_dir=args.MODEL_DIR)
     model.build()
     model.summary()
 

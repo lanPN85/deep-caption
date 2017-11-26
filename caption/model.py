@@ -1,4 +1,4 @@
-from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout
+from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Flatten
 from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
 from keras.callbacks import EarlyStopping, CSVLogger
@@ -217,3 +217,46 @@ class CaptionModel:
                  sentence_len=sentence_len, dropout=dropout, save_dir=save_dir)
         cm.model = model
         return cm
+
+
+class DirectCaptionModel(CaptionModel):
+    def build(self, readout=False):
+        self.model = Sequential()
+
+        out_row, out_col = self.img_size
+        total_size = -1
+        for i, cl in enumerate(self.conv_layers):
+            if i == 0:
+                self.model.add(Conv2D(
+                    cl['filters'], cl['kernel'], strides=cl['strides'],
+                    activation='relu', input_shape=(self.img_size[0], self.img_size[1], 3),
+                    padding='same'
+                ))
+            else:
+                self.model.add(Conv2D(
+                    cl['filters'], cl['kernel'], strides=cl['strides'],
+                    activation='relu', padding='same'
+                ))
+            if 'pool' in cl.keys():
+                self.model.add(MaxPooling2D(cl['pool']))
+                out_col /= cl['pool']
+                out_row /= cl['pool']
+            if 'dense' in cl.keys():
+                self.model.add(Flatten())
+                self.model.add(Dense(cl['dense'], activation='hard_sigmoid'))
+                total_size = cl['dense']
+                break
+
+        assert total_size % self.sentence_len == 0, \
+            'Total size %d not divisible to sentence length %d' % (total_size, self.sentence_len)
+        rnn_depth = int(total_size / self.sentence_len)
+
+        self.model.add(Reshape((self.sentence_len, rnn_depth)))
+        for i, ll in enumerate(self.lstm_layers):
+            self.model.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
+                                recurrent_activation='hard_sigmoid', dropout=self.dropout,
+                                recurrent_dropout=self.dropout, implementation=2, unroll=False))
+
+        self.model.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True,
+                            recurrent_activation='hard_sigmoid', dropout=self.dropout,
+                            recurrent_dropout=self.dropout, implementation=2, unroll=False))
