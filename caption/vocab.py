@@ -16,13 +16,16 @@ class Vocab:
             self._w2i = {self.NULL_TOKEN: 0, self.END_TOKEN: 1}
             self._i2w = [self.NULL_TOKEN, self.END_TOKEN]
 
+        dcount = 0
         for d in docs:
             for w in self.tokenizer(d):
                 if w not in self._w2i.keys():
                     self._w2i[w] = len(self._i2w)
                     self._i2w.append(w)
+            dcount += 1
             if len(self._i2w) > limit:
                 break
+        print(' Documents scanned: %d' % dcount)
 
     def encode_sentence(self, sentence, length=20):
         mat = np.zeros((length, self.size))

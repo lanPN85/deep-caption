@@ -95,7 +95,7 @@ class CaptionModel:
 
         per_epoch = math.ceil(len(captions) / batch_size)
         val_per_epoch = math.ceil(len(val_captions) / batch_size)
-        callbacks = [CaptionCallback(self, monitor='loss'),
+        callbacks = [CaptionCallback(self, monitor='loss', samples=img_paths[:5] + val_img[:5]),
                      EarlyStopping(monitor='loss', patience=5, verbose=1),
                      CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
 

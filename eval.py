@@ -34,7 +34,7 @@ def main(args):
                     print(' Invalid path to file.')
                     continue
                 caption = model.caption(query)
-                print('\t%s' % caption)
+                print('-> %s' % caption)
                 if args.SHOW:
                     mat = utils.load_image(query, normalize=False)
                     plt.imshow(mat)
