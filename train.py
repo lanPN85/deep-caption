@@ -37,6 +37,7 @@ def parse_arguments():
     parser.add_argument('--vocab', default=DEFAULT_VOCAB_LIMIT, type=int, dest='VLIMIT')
     parser.add_argument('--mode', default='word', dest='MODE')
     parser.add_argument('--type', default='default', dest='TYPE')
+    parser.add_argument('--connector', default=1000, type=int, dest='CONN')
 
     return parser.parse_args()
 
@@ -72,7 +73,7 @@ def main(args):
         model_cls = CaptionModel
     model = model_cls(CONV_TOPO, LSTM_TOPO, vocab, img_size=IMAGE_SIZE,
                       sentence_len=args.SENTENCE_LEN, dropout=args.DROPOUT,
-                      save_dir=args.MODEL_DIR)
+                      save_dir=args.MODEL_DIR, connector_dim=args.CONN)
     model.build()
     model.summary()
 
