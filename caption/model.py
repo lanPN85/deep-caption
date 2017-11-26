@@ -3,6 +3,7 @@ from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
 from keras.callbacks import EarlyStopping, CSVLogger
 from recurrentshop import RecurrentSequential, LSTMCell
+from seq2seq import LSTMDecoderCell
 
 import math
 import numpy as np
@@ -71,7 +72,9 @@ class CaptionModel:
             assert self.lstm_layers[-1]['units'] == self.vocab.size
         rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
                                   readout=readout)
-        rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
+        # rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
+        # rnn.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True))
+        rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size))
         self.seq_model.add(rnn)
         self.model = self.seq_model
 
@@ -159,11 +162,14 @@ class CaptionModel:
         _img_mat = np.zeros((batch_size, self.img_size[0], self.img_size[1], 3))
         _cap_mat = np.zeros((batch_size, self.sentence_len, self.vocab.size))
         _cap_mask = np.zeros((batch_size, self.sentence_len))
+        tokens = []
+        for c in captions:
+            tokens.append(self.vocab.tokenizer(c))
 
         while True:
             for i in range(batch_size, len(captions), batch_size):
                 _img_paths = img_paths[i - batch_size:i]
-                _captions = captions[i - batch_size:i]
+                _captions = tokens[i - batch_size:i]
 
                 for j, _path in enumerate(_img_paths):
                     _img_mat[j, :, :] = utils.load_image(_path, size=self.img_size)

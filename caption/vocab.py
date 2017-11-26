@@ -26,7 +26,10 @@ class Vocab:
 
     def encode_sentence(self, sentence, length=20):
         mat = np.zeros((length, self.size))
-        tokens = self.tokenizer(sentence)[:length-1]
+        if type(sentence) == str:
+            tokens = self.tokenizer(sentence)[:length-1]
+        else:
+            tokens = sentence[:length-1]
         tokens += [self.END_TOKEN] + [self.NULL_TOKEN] * (length - 1 - len(tokens))
         for i, w in enumerate(tokens):
             mat[i, self[w]] = 1.0
