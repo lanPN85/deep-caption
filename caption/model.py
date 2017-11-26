@@ -1,4 +1,4 @@
-from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense
+from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout
 from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
 from keras.callbacks import EarlyStopping, CSVLogger
@@ -63,19 +63,24 @@ class CaptionModel:
                                   readout=readout, implementation=2)
 
         for i, ll in enumerate(self.lstm_layers[:-1]):
-            rnn.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
-                         recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                         recurrent_dropout=self.dropout, implementation=2, unroll=True))
-        rnn.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
-                     recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                     recurrent_dropout=self.dropout, implementation=2, unroll=True))
+            self.model.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
+                                recurrent_activation='hard_sigmoid', dropout=self.dropout,
+                                recurrent_dropout=self.dropout, implementation=2, unroll=True))
+            # rnn.add(Dropout(self.dropout))
+            # rnn.add(LSTMCell(ll['units'], activation='tanh'))
+
+        self.model.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
+                            recurrent_activation='hard_sigmoid', dropout=self.dropout,
+                            recurrent_dropout=self.dropout, implementation=2, unroll=True))
+        # rnn.add(Dropout(self.dropout))
+        # rnn.add(LSTMCell(self.lstm_layers[-1]['units'], activation='tanh'))
 
         if readout:
             assert self.lstm_layers[-1]['units'] == self.vocab.size
 
-        rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
+        # rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
         # rnn.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True))
-        # rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size))
+        rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size, activation='softmax'))
         self.model.add(rnn)
         # self.model = self.seq_model
 
