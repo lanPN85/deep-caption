@@ -28,55 +28,56 @@ class CaptionModel:
         self.dropout = dropout
         self.vocab = vocab
 
-        self.seq_model = None
         self.model = Sequential()
 
     def build(self, readout=False):
-        self.seq_model = Sequential()
+        self.model = Sequential()
 
         out_row, out_col = self.img_size
         conv_depth = None
         for i, cl in enumerate(self.conv_layers):
             if i == 0:
-                self.seq_model.add(Conv2D(
+                self.model.add(Conv2D(
                     cl['filters'], cl['kernel'], strides=cl['strides'],
                     activation='relu', input_shape=(self.img_size[0], self.img_size[1], 3),
                     padding='same'
                 ))
             else:
-                self.seq_model.add(Conv2D(
+                self.model.add(Conv2D(
                     cl['filters'], cl['kernel'], strides=cl['strides'],
                     activation='relu', padding='same'
                 ))
             if 'pool' in cl.keys():
-                self.seq_model.add(MaxPooling2D(cl['pool']))
+                self.model.add(MaxPooling2D(cl['pool']))
                 out_col /= cl['pool']
                 out_row /= cl['pool']
             if 'dense' in cl.keys():
-                self.seq_model.add(Dense(cl['dense'], activation='hard_sigmoid'))
+                self.model.add(Dense(cl['dense'], activation='hard_sigmoid'))
                 conv_depth = cl['dense']
                 break
 
         conv_depth = self.conv_layers[-1]['filters'] if conv_depth is None else conv_depth
-        self.seq_model.add(Reshape((int(out_row * out_col), conv_depth)))
+        self.model.add(Reshape((int(out_row * out_col), conv_depth)))
+
+        rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
+                                  readout=readout, implementation=2)
 
         for i, ll in enumerate(self.lstm_layers[:-1]):
-            self.seq_model.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
-                                    recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                                    recurrent_dropout=self.dropout, implementation=2, unroll=True))
-        self.seq_model.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
-                                recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                                recurrent_dropout=self.dropout, implementation=2, unroll=True))
+            rnn.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
+                         recurrent_activation='hard_sigmoid', dropout=self.dropout,
+                         recurrent_dropout=self.dropout, implementation=2, unroll=True))
+        rnn.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
+                     recurrent_activation='hard_sigmoid', dropout=self.dropout,
+                     recurrent_dropout=self.dropout, implementation=2, unroll=True))
 
         if readout:
             assert self.lstm_layers[-1]['units'] == self.vocab.size
-        rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
-                                  readout=readout)
-        # rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
+
+        rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
         # rnn.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True))
-        rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size))
-        self.seq_model.add(rnn)
-        self.model = self.seq_model
+        # rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size))
+        self.model.add(rnn)
+        # self.model = self.seq_model
 
     def compile(self, optimizer=RMSprop()):
         self.model.compile(optimizer, loss='categorical_crossentropy',
@@ -197,12 +198,13 @@ class CaptionModel:
 
     @classmethod
     def load(cls, load_dir):
-        f1 = open(os.path.join(self.save_dir, 'configs.pkl'), 'rb')
-        f2 = open(os.path.join(self.save_dir, 'vocab.pkl'), 'rb')
+        f1 = open(os.path.join(load_dir, 'configs.pkl'), 'rb')
+        f2 = open(os.path.join(load_dir, 'vocab.pkl'), 'rb')
 
         img_size, dropout, sentence_len, save_dir, conv_layers, lstm_layers = pickle.load(f1)
         vocab = pickle.load(f2)
-        model = keras.models.load_model(os.path.join(load_dir, 'model.hdf5'))
+        model = keras.models.load_model(os.path.join(load_dir, 'model.hdf5'),
+                                        custom_objects={'RecurrentSequential': RecurrentSequential})
         f1.close()
         f2.close()
 
