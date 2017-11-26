@@ -1,5 +1,7 @@
 # LSTM settings
 
+DECODER_ONLY = []
+
 LSTM1 = [
     {'units': 128},
 ]

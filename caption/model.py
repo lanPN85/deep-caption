@@ -58,7 +58,10 @@ class CaptionModel:
                 break
 
         conv_depth = self.conv_layers[-1]['filters'] if conv_depth is None else conv_depth
-        self.model.add(Reshape((int(out_row * out_col), conv_depth)))
+        if len(self.lstm_layers) > 0:
+            self.model.add(Reshape((int(out_row * out_col), conv_depth)))
+        else:
+            self.model.add(Reshape((int(out_row * out_col) * conv_depth, )))
 
         rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
                                   readout=readout, implementation=2)
@@ -70,9 +73,11 @@ class CaptionModel:
             # rnn.add(Dropout(self.dropout))
             # rnn.add(LSTMCell(ll['units'], activation='tanh'))
 
-        self.model.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
-                            recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                            recurrent_dropout=self.dropout, implementation=2, unroll=True))
+        if len(self.lstm_layers) > 0:
+            self.model.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
+                                recurrent_activation='hard_sigmoid', dropout=self.dropout,
+                                recurrent_dropout=self.dropout, implementation=2, unroll=True))
+
         # rnn.add(Dropout(self.dropout))
         # rnn.add(LSTMCell(self.lstm_layers[-1]['units'], activation='tanh'))
 
@@ -220,7 +225,7 @@ class CaptionModel:
         f1.close()
         f2.close()
 
-        cm = cls(conv_layers, lstm_layers, vocab, img_size=(128, 128),
+        cm = cls(conv_layers, lstm_layers, vocab, img_size=img_size,
                  sentence_len=sentence_len, dropout=dropout, save_dir=save_dir)
         cm.model = model
         return cm
