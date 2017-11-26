@@ -63,10 +63,10 @@ class CaptionModel:
         for i, ll in enumerate(self.lstm_layers[:-1]):
             self.seq_model.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
                                     recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                                    recurrent_dropout=self.dropout))
+                                    recurrent_dropout=self.dropout, implementation=2, unroll=True))
         self.seq_model.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
                                 recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                                recurrent_dropout=self.dropout))
+                                recurrent_dropout=self.dropout, implementation=2, unroll=True))
 
         if readout:
             assert self.lstm_layers[-1]['units'] == self.vocab.size
