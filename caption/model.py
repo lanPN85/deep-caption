@@ -98,10 +98,12 @@ class CaptionModel:
                      EarlyStopping(monitor='loss', patience=20, verbose=1),
                      CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
 
-        self.model.fit_generator(self._generate_batch(img_paths, captions, batch_size),
-                                 per_epoch, shuffle=False, max_queue_size=1, epochs=epochs, initial_epoch=initial_epoch,
-                                 validation_data=self._generate_batch(val_img, val_captions, batch_size),
-                                 validation_steps=val_per_epoch, callbacks=callbacks)
+        _gen = self._generate_batch(img_paths, captions, batch_size)
+        _val_gen = self._generate_batch(val_img, val_captions, batch_size)
+        self.model.fit_generator(_gen, per_epoch, shuffle=False, max_queue_size=5,
+                                 epochs=epochs, initial_epoch=initial_epoch,
+                                 validation_data=_val_gen, validation_steps=val_per_epoch,
+                                 callbacks=callbacks)
 
     def evaluate(self, test_img, test_captions, batch_size=10):
         steps = math.ceil(len(test_captions) / batch_size)

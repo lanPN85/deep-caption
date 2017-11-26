@@ -10,7 +10,7 @@ def load_image(path, size=(128, 128)):
     image = image.resize(size, Image.ANTIALIAS)
     image = image.convert('RGB')
 
-    imarr = np.array(image)
+    imarr = np.asarray(image)
     imarr = imarr.astype(np.float32)
 
     imarr /= 255.0
