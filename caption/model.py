@@ -36,6 +36,7 @@ class CaptionModel:
 
         out_row, out_col = self.img_size
         conv_depth = None
+        total_size = -1
         for i, cl in enumerate(self.conv_layers):
             if i == 0:
                 self.model.add(Conv2D(
@@ -53,7 +54,9 @@ class CaptionModel:
                 out_col /= cl['pool']
                 out_row /= cl['pool']
             if 'dense' in cl.keys():
+                self.model.add(Flatten())
                 self.model.add(Dense(cl['dense'], activation='hard_sigmoid'))
+                total_size = cl['dense']
                 conv_depth = cl['dense']
                 break
 
@@ -61,7 +64,7 @@ class CaptionModel:
         if len(self.lstm_layers) > 0:
             self.model.add(Reshape((int(out_row * out_col), conv_depth)))
         else:
-            self.model.add(Reshape((int(out_row * out_col) * conv_depth, )))
+            self.model.add(Reshape((total_size, )))
 
         rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
                                   readout=readout, implementation=2)
