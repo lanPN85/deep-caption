@@ -42,7 +42,11 @@ class Vocab:
 
     def mask_sentence(self, sentence, length=20):
         mask = np.ones((length,))
-        tokens = self.tokenizer(sentence) + [self.END_TOKEN]
+        if type(sentence) == str:
+            tokens = self.tokenizer(sentence)[:length-1]
+        else:
+            tokens = sentence[:length-1]
+        tokens += [self.END_TOKEN]
         for i in range(len(tokens), length):
             mask[i] = 0.0
         return mask
