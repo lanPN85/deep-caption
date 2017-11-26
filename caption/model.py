@@ -87,7 +87,7 @@ class CaptionModel:
 
     def compile(self, optimizer=RMSprop()):
         self.model.compile(optimizer, loss='categorical_crossentropy',
-                           metrics=None, sample_weight_mode='temporal')
+                           metrics=['acc'], sample_weight_mode='temporal')
 
     def train(self, img_paths, captions, val_img, val_captions,
               epochs=100, batch_size=10, initial_epoch=0):
