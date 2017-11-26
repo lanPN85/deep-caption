@@ -5,15 +5,15 @@ import os
 import json
 
 
-def load_image(path, size=(128, 128)):
+def load_image(path, size=(128, 128), normalize=True):
     image = Image.open(path)
     image = image.resize(size, Image.ANTIALIAS)
     image = image.convert('RGB')
 
     imarr = np.asarray(image)
-    imarr = imarr.astype(np.float32)
-
-    imarr /= 255.0
+    if normalize:
+        imarr = imarr.astype(np.float32)
+        imarr /= 255.0
     return imarr
 
 

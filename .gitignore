@@ -2,6 +2,7 @@
 
 .idea/
 data/coco/*
+data/*.hdf5
 !data/stub
 !data/*.py
 !data/coco/download.sh

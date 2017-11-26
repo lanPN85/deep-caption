@@ -2,6 +2,7 @@ from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Fl
 from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
 from keras.callbacks import EarlyStopping, CSVLogger
+from keras.preprocessing.image import load_img, img_to_array
 from recurrentshop import RecurrentSequential, LSTMCell
 from seq2seq import LSTMDecoderCell
 
@@ -78,9 +79,9 @@ class CaptionModel:
         if readout:
             assert self.lstm_layers[-1]['units'] == self.vocab.size
 
-        # rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
+        rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
         # rnn.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True))
-        rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size, activation='softmax'))
+        # rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size, activation='softmax'))
         self.model.add(rnn)
         # self.model = self.seq_model
 
@@ -95,7 +96,7 @@ class CaptionModel:
         per_epoch = math.ceil(len(captions) / batch_size)
         val_per_epoch = math.ceil(len(val_captions) / batch_size)
         callbacks = [CaptionCallback(self, monitor='loss'),
-                     EarlyStopping(monitor='loss', patience=20, verbose=1),
+                     EarlyStopping(monitor='loss', patience=5, verbose=1),
                      CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
 
         _gen = self._generate_batch(img_paths, captions, batch_size)
@@ -180,7 +181,8 @@ class CaptionModel:
                 _captions = tokens[i - batch_size:i]
 
                 for j, _path in enumerate(_img_paths):
-                    _img_mat[j, :, :] = utils.load_image(_path, size=self.img_size)
+                    # _img_mat[j, :, :] = utils.load_image(_path, size=self.img_size)
+                    _img_mat[j, :, :] = img_to_array(load_img(_path, target_size=self.img_size))
 
                 for j, _caption in enumerate(_captions):
                     _cap_mat[j, :, :] = self.vocab.encode_sentence(_caption, length=self.sentence_len)
@@ -211,7 +213,10 @@ class CaptionModel:
         img_size, dropout, sentence_len, save_dir, conv_layers, lstm_layers = pickle.load(f1)
         vocab = pickle.load(f2)
         model = keras.models.load_model(os.path.join(load_dir, 'model.hdf5'),
-                                        custom_objects={'RecurrentSequential': RecurrentSequential})
+                                        custom_objects={
+                                            'RecurrentSequential': RecurrentSequential,
+                                            'LSTMDecoderCell': LSTMDecoderCell
+                                        })
         f1.close()
         f2.close()
 

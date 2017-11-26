@@ -48,7 +48,7 @@ class Vocab:
         return mask
 
     def __getitem__(self, item):
-        if type(item) == int:
+        if type(item) in (int, np.int64, np.int32):
             return self._i2w[item]
         else:
             return self._w2i.get(item, self._w2i[self.NULL_TOKEN])
