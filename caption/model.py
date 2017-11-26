@@ -38,6 +38,7 @@ class CaptionModel:
         out_row, out_col = self.img_size
         conv_depth = None
         total_size = -1
+        print(' BUilding CNN layers...')
         for i, cl in enumerate(self.conv_layers):
             if i == 0:
                 self.model.add(Conv2D(
@@ -60,6 +61,7 @@ class CaptionModel:
                 conv_depth = cl['dense']
                 break
 
+        print(' Adding connector...')
         conv_depth = self.conv_layers[-1]['filters'] if conv_depth is None else conv_depth
         if len(self.lstm_layers) > 0:
             self.model.add(Reshape((int(out_row * out_col), conv_depth)))
@@ -87,6 +89,7 @@ class CaptionModel:
         if readout:
             assert self.lstm_layers[-1]['units'] == self.vocab.size
 
+        print(' Building decoder...')
         rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
         # rnn.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True))
         # rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size, activation='softmax'))
