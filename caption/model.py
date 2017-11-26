@@ -20,7 +20,7 @@ from .vocab import Vocab
 
 class CaptionModel:
     def __init__(self, conv_layers, lstm_layers, vocab, img_size=(128, 128),
-                 sentence_len=20, dropout=0.0, save_dir='models/default'):
+                 sentence_len=20, dropout=0.0, connector_dim=1000, save_dir='models/default'):
         self.img_size = img_size
         self.conv_layers = conv_layers
         self.lstm_layers = lstm_layers
@@ -28,6 +28,7 @@ class CaptionModel:
         self.save_dir = save_dir
         self.dropout = dropout
         self.vocab = vocab
+        self.connector_dim = connector_dim
 
         self.model = Sequential()
 
@@ -56,7 +57,6 @@ class CaptionModel:
             if 'dense' in cl.keys():
                 self.model.add(Flatten())
                 self.model.add(Dense(cl['dense'], activation='hard_sigmoid'))
-                total_size = cl['dense']
                 conv_depth = cl['dense']
                 break
 
@@ -64,7 +64,7 @@ class CaptionModel:
         if len(self.lstm_layers) > 0:
             self.model.add(Reshape((int(out_row * out_col), conv_depth)))
         else:
-            self.model.add(Reshape((total_size, )))
+            self.model.add(Dense(self.connector_dim))
 
         rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
                                   readout=readout, implementation=2)
