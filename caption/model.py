@@ -1,11 +1,11 @@
-from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Flatten, RepeatVector
 from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
 from keras.callbacks import EarlyStopping, CSVLogger
 from keras.preprocessing.image import load_img, img_to_array
 from recurrentshop import RecurrentSequential, LSTMCell
 from seq2seq import LSTMDecoderCell
-
+from keras.applications.vgg16 import VGG16
 import math
 import numpy as np
 import os
@@ -90,6 +90,7 @@ class CaptionModel:
             assert self.lstm_layers[-1]['units'] == self.vocab.size
 
         print(' Building decoder...')
+        rnn.add(Dropout(self.dropout))
         rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
         # rnn.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True))
         # rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size, activation='softmax'))
@@ -242,7 +243,6 @@ class DirectCaptionModel(CaptionModel):
         self.model = Sequential()
 
         out_row, out_col = self.img_size
-        total_size = -1
         for i, cl in enumerate(self.conv_layers):
             if i == 0:
                 self.model.add(Conv2D(
@@ -262,14 +262,10 @@ class DirectCaptionModel(CaptionModel):
             if 'dense' in cl.keys():
                 self.model.add(Flatten())
                 self.model.add(Dense(cl['dense'], activation='hard_sigmoid'))
-                total_size = cl['dense']
                 break
+        self.model.add(Dense(self.connector_dim, activation='hard_sigmoid'))
+        self.model.add(RepeatVector(self.sentence_len))
 
-        assert total_size % self.sentence_len == 0, \
-            'Total size %d not divisible to sentence length %d' % (total_size, self.sentence_len)
-        rnn_depth = int(total_size / self.sentence_len)
-
-        self.model.add(Reshape((self.sentence_len, rnn_depth)))
         for i, ll in enumerate(self.lstm_layers):
             self.model.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
                                 recurrent_activation='hard_sigmoid', dropout=self.dropout,
