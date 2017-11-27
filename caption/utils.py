@@ -1,20 +1,26 @@
-from PIL import Image
+from keras.preprocessing.image import load_img, img_to_array
 
 import numpy as np
 import os
 import json
+import cv2
 
 
 def load_image(path, size=(128, 128), normalize=True):
-    image = Image.open(path)
-    image = image.resize(size, Image.ANTIALIAS)
-    image = image.convert('RGB')
+    return img_to_array(load_img(path, target_size=size))
 
-    imarr = np.asarray(image)
-    if normalize:
-        imarr = imarr.astype(np.float32)
-        imarr /= 255.0
-    return imarr
+
+def load_image_vgg(path, size=(224, 224)):
+    img = cv2.resize(cv2.imread(path), size)
+
+    mean_pixel = [103.939, 116.779, 123.68]
+    img = img.astype(np.float32, copy=False)
+    for c in range(3):
+        img[:, :, c] = img[:, :, c] - mean_pixel[c]
+    img = img.transpose((2, 0, 1))
+    img = np.expand_dims(img, axis=0)
+
+    return img
 
 
 def get_image_paths(directory, extensions=('png', 'jpg')):

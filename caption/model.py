@@ -16,11 +16,13 @@ import keras.models
 from . import utils
 from .callbacks import CaptionCallback
 from .vocab import Vocab
+from .layers import *
 
 
 class CaptionModel:
     def __init__(self, conv_layers, lstm_layers, vocab, img_size=(128, 128),
-                 sentence_len=20, dropout=0.0, connector_dim=1000, save_dir='models/default'):
+                 sentence_len=20, dropout=0.0, connector_dim=1000, save_dir='models/default',
+                 img_loader=utils.load_image):
         self.img_size = img_size
         self.conv_layers = conv_layers
         self.lstm_layers = lstm_layers
@@ -29,6 +31,7 @@ class CaptionModel:
         self.dropout = dropout
         self.vocab = vocab
         self.connector_dim = connector_dim
+        self.img_loader = img_loader
 
         self.model = Sequential()
 
@@ -126,7 +129,7 @@ class CaptionModel:
 
     def caption(self, image):
         if type(image) == str:
-            return self.caption(utils.load_image(image, self.img_size))
+            return self.caption(self.img_loader(image, self.img_size))
         else:
             assert image.shape[0] == self.img_size[0]
             assert image.shape[1] == self.img_size[1]
@@ -149,7 +152,7 @@ class CaptionModel:
         _im = np.zeros((len(images), self.img_size[0], self.img_size[1], 3))
         for i, img in enumerate(images):
             if type(img) == str:
-                _im[i, :, :, :] = utils.load_image(img, self.img_size)
+                _im[i, :, :, :] = self.img_loader(img, self.img_size)
             else:
                 _im[i, :, :, :] = img
 
@@ -194,7 +197,7 @@ class CaptionModel:
 
                 for j, _path in enumerate(_img_paths):
                     # _img_mat[j, :, :] = utils.load_image(_path, size=self.img_size)
-                    _img_mat[j, :, :] = img_to_array(load_img(_path, target_size=self.img_size))
+                    _img_mat[j, :, :] = self.img_loader(_path, self.img_size)
 
                 for j, _caption in enumerate(_captions):
                     _cap_mat[j, :, :] = self.vocab.encode_sentence(_caption, length=self.sentence_len)
@@ -227,7 +230,9 @@ class CaptionModel:
         model = keras.models.load_model(os.path.join(load_dir, 'model.hdf5'),
                                         custom_objects={
                                             'RecurrentSequential': RecurrentSequential,
-                                            'LSTMDecoderCell': LSTMDecoderCell
+                                            'LSTMDecoderCell': LSTMDecoderCell,
+                                            'DecoderLSTM': DecoderLSTM,
+                                            'DecoderLSTMCell': DecoderLSTMCell
                                         })
         f1.close()
         f2.close()
