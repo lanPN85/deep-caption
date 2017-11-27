@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
-from keras.optimizers import RMSprop
+from keras.optimizers import Adam
 
 import os
 import nltk
 
-from caption import CaptionModel, DirectCaptionModel, Vocab
+from caption import CaptionModel, Vocab
 from caption.topologies import *
 from caption.topo import *
 from caption import utils
@@ -71,7 +71,7 @@ def main(args):
     model.summary()
 
     print('Compiling...')
-    model.compile(RMSprop(lr=args.LR))
+    model.compile(Adam(lr=args.LR))
 
     print('Starting training...')
     try:
