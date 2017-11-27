@@ -12,7 +12,8 @@ def vgg_imgnet_decode(caption_model):
                  weights='imagenet')
     model.add(base)
     model.add(Flatten())
-    model.add(Dense(caption_model.connector_dim))
+    model.add(Dense(caption_model.connector_dim,
+                    activation='relu'))
     # depth = int(caption_model.connector_dim / caption_model.vocab.size)
     # model.add(Reshape((caption_model.vocab.size, depth)))
     model.add(DecoderLSTM(caption_model.connector_dim,
