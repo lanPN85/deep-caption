@@ -65,7 +65,7 @@ def main(args):
 
     print('Creating model...')
     model = CaptionModel(None, None, vocab, IMAGE_SIZE, sentence_len=args.SENTENCE_LEN,
-                         dropout=args.DROPOUT, save_dir=args.MODEL_DIR)
+                         dropout=args.DROPOUT, save_dir=args.MODEL_DIR, img_loader=utils.load_image_vgg)
     model.model = vgg_imgnet_decode(model)
     model.summary()
 
