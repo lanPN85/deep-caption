@@ -14,9 +14,13 @@ DEFAULT_DROPOUT = 0.0
 DEFAULT_SENTENCE_LEN = 30
 DEFAULT_EPOCHS = 100
 DEFAULT_BATCH = 16
-DEFAULT_VOCAB_LIMIT = 5000
+DEFAULT_VOCAB_MIN = 2
 
 IMAGE_SIZE = (224, 224)
+MAP = {
+    'vgg': vgg_imgnet_decode,
+    'resnet': resnet_imgnet_decode
+}
 
 
 def parse_arguments():
@@ -32,9 +36,10 @@ def parse_arguments():
     parser.add_argument('--from', default=0, type=int, dest='FROM')
     parser.add_argument('--batch-size', default=DEFAULT_BATCH, type=int, dest='BATCH')
     parser.add_argument('--cutoff', default=None, type=int, dest='CUTOFF')
-    parser.add_argument('--vocab', default=DEFAULT_VOCAB_LIMIT, type=int, dest='VLIMIT')
+    parser.add_argument('--vocab-min', default=DEFAULT_VOCAB_MIN, type=int, dest='VMIN')
     parser.add_argument('--mode', default='word', dest='MODE')
     parser.add_argument('--connector', default=1000, type=int, dest='CONN')
+    parser.add_argument('--type', default='vgg', dest='TYPE')
 
     return parser.parse_args()
 
@@ -60,14 +65,13 @@ def main(args):
         raise ValueError('Unknown mode %s.' % args.MODE)
 
     vocab = Vocab(tokenizer=tokenizer)
-    vocab.build(train_docs, limit=args.VLIMIT)
-    print(' Vocabulary size: %d' % vocab.size)
+    vocab.build(train_docs, wmin=args.VMIN)
 
     print('Creating model...')
     model = CaptionModel(None, None, vocab, IMAGE_SIZE, sentence_len=args.SENTENCE_LEN,
                          dropout=args.DROPOUT, save_dir=args.MODEL_DIR, img_loader=utils.load_image_vgg,
                          connector_dim=args.CONN)
-    model.model = vgg_imgnet_decode(model)
+    model.model = MAP[args.TYPE](model)
     model.summary()
 
     print('Compiling...')
