@@ -18,7 +18,7 @@ class Vocab:
 
         dcount = 0
         for d in docs:
-            for w in self.tokenizer(d):
+            for w in self.tokenizer(d.lower()):
                 if w not in self._w2i.keys():
                     self._w2i[w] = len(self._i2w)
                     self._i2w.append(w)
@@ -30,7 +30,7 @@ class Vocab:
     def encode_sentence(self, sentence, length=20):
         mat = np.zeros((length, self.size))
         if type(sentence) == str:
-            tokens = self.tokenizer(sentence)[:length-1]
+            tokens = self.tokenizer(sentence.lower())[:length-1]
         else:
             tokens = sentence[:length-1]
         tokens += [self.END_TOKEN] + [self.NULL_TOKEN] * (length - 1 - len(tokens))
@@ -46,7 +46,7 @@ class Vocab:
     def mask_sentence(self, sentence, length=20):
         mask = np.ones((length,))
         if type(sentence) == str:
-            tokens = self.tokenizer(sentence)[:length-1]
+            tokens = self.tokenizer(sentence.lower())[:length-1]
         else:
             tokens = sentence[:length-1]
         tokens += [self.END_TOKEN]
