@@ -17,8 +17,17 @@ def load_image_vgg(path, size=(224, 224)):
     img = img.astype(np.float32, copy=False)
     for c in range(3):
         img[:, :, c] = img[:, :, c] - mean_pixel[c]
-    # img = img.transpose((2, 0, 1))
+    img = img[:, :, [2, 1, 0]]
     # img = np.expand_dims(img, axis=0)
+
+    return img
+
+
+def load_image_resnet(path, size=(224, 224)):
+    img = cv2.resize(cv2.imread(path), size)
+
+    img = img.astype(np.float32, copy=False)
+    img = img[:, :, [2, 1, 0]]
 
     return img
 
