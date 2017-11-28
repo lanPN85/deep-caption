@@ -1,17 +1,16 @@
 from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Flatten, RepeatVector
 from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
-from keras.callbacks import EarlyStopping, CSVLogger
-from keras.preprocessing.image import load_img, img_to_array
+from keras.callbacks import EarlyStopping, CSVLogger, TensorBoard
 from recurrentshop import RecurrentSequential, LSTMCell
-from seq2seq import LSTMDecoderCell
-from keras.applications.vgg16 import VGG16
+
 import math
 import numpy as np
 import os
 import json
 import pickle
 import keras.models
+import keras.backend as K
 
 from . import utils
 from .callbacks import CaptionCallback
@@ -113,6 +112,11 @@ class CaptionModel:
         callbacks = [CaptionCallback(self, monitor='loss', samples=img_paths[:5] + val_img[:5]),
                      EarlyStopping(monitor='loss', patience=5, verbose=1),
                      CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
+        if K.backend() == 'tensorflow':
+            # noinspection PyTypeChecker
+            callbacks.append(TensorBoard(log_dir=self.save_dir,
+                                         batch_size=batch_size,
+                                         write_images=True))
 
         _gen = self._generate_batch(img_paths, captions, batch_size)
         _val_gen = self._generate_batch(val_img, val_captions, batch_size)
@@ -230,7 +234,6 @@ class CaptionModel:
         model = keras.models.load_model(os.path.join(load_dir, 'model.hdf5'),
                                         custom_objects={
                                             'RecurrentSequential': RecurrentSequential,
-                                            'LSTMDecoderCell': LSTMDecoderCell,
                                             'DecoderLSTM': DecoderLSTM,
                                             'DecoderLSTMCell': DecoderLSTMCell
                                         })

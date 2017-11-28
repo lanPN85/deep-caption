@@ -34,7 +34,7 @@ def decode_rnn(step_function, inputs, initial_states, timesteps):
 
     # input_ta = input_ta.write(time, inputs)
 
-    def _step(time, output_ta_t, input_t, *states):
+    def _step(_time, output_ta_t, input_t, *states):
         """RNN decoder step function.
 
         # Arguments
@@ -52,10 +52,10 @@ def decode_rnn(step_function, inputs, initial_states, timesteps):
                                             tuple(constants))
         for state, new_state in zip(states, _new_states):
             new_state.set_shape(state.get_shape())
-        output_ta_t = output_ta_t.write(time, output)
-        input_t = K.switch(time < time_steps - K.constant(1, dtype='int32'),
-                           output, input_t) # Write output to next input
-        return (time + 1, output_ta_t, input_t) + tuple(_new_states)
+        output_ta_t = output_ta_t.write(_time, output)
+        input_t = K.switch(_time < time_steps - K.constant(1, dtype='int32'),
+                           output, input_t)  # Write output to next input
+        return (_time + 1, output_ta_t, input_t) + tuple(_new_states)
 
     final_outputs = K.control_flow_ops.while_loop(
         cond=lambda _time, *_: _time < time_steps,
@@ -71,7 +71,7 @@ def decode_rnn(step_function, inputs, initial_states, timesteps):
     last_output = output_ta.read(last_time - 1)
 
     axes = [1, 0] + list(range(2, len(outputs.get_shape())))
-    # outputs = tf.transpose(outputs, axes)
+    outputs = tf.transpose(outputs, axes)
     # last_output._uses_learning_phase = uses_learning_phase
     return last_output, outputs, new_states
 
@@ -113,26 +113,6 @@ class DecoderLSTMCell(LSTMCell):
         else:
             self.bias = None
 
-        self.kernel_i = self.kernel[:, :self.units]
-        self.kernel_f = self.kernel[:, self.units: self.units * 2]
-        self.kernel_c = self.kernel[:, self.units * 2: self.units * 3]
-        self.kernel_o = self.kernel[:, self.units * 3:]
-
-        self.recurrent_kernel_i = self.recurrent_kernel[:, :self.units]
-        self.recurrent_kernel_f = self.recurrent_kernel[:, self.units: self.units * 2]
-        self.recurrent_kernel_c = self.recurrent_kernel[:, self.units * 2: self.units * 3]
-        self.recurrent_kernel_o = self.recurrent_kernel[:, self.units * 3:]
-
-        if self.use_bias:
-            self.bias_i = self.bias[:self.units]
-            self.bias_f = self.bias[self.units: self.units * 2]
-            self.bias_c = self.bias[self.units * 2: self.units * 3]
-            self.bias_o = self.bias[self.units * 3:]
-        else:
-            self.bias_i = None
-            self.bias_f = None
-            self.bias_c = None
-            self.bias_o = None
         self.built = True
 
     def call(self, inputs, states, training=None):

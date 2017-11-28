@@ -10,11 +10,13 @@ class Vocab:
         self.tokenizer = tokenizer
         self._w2i = {self.NULL_TOKEN: 0, self.END_TOKEN: 1}
         self._i2w = [self.NULL_TOKEN, self.END_TOKEN]
+        self._class_weights = {0: 0.0, 1: 1.5}
 
     def build(self, docs, reset=True, wmin=5):
         if reset:
             self._w2i = {self.NULL_TOKEN: 0, self.END_TOKEN: 1}
             self._i2w = [self.NULL_TOKEN, self.END_TOKEN]
+            self._class_weights = {0: 0.0, 1: 1.5}
 
         freq = {}
         for d in docs:
@@ -29,6 +31,7 @@ class Vocab:
                 assert w not in self._w2i.keys()
                 self._w2i[w] = len(self._i2w)
                 self._i2w.append(w)
+                self._class_weights[self[w]] = 1.0
 
         print(' Documents scanned: %d' % len(docs))
         print(' Total possible words: %d' % len(freq.keys()))
@@ -57,6 +60,10 @@ class Vocab:
         else:
             tokens = sentence[:length-1]
         tokens += [self.END_TOKEN]
+        for i, t in enumerate(tokens):
+            if self[t] == self[self.NULL_TOKEN]:
+                mask[i] = 0.0
+
         for i in range(len(tokens), length):
             mask[i] = 0.0
         return mask
@@ -70,3 +77,7 @@ class Vocab:
     @property
     def size(self):
         return len(self._i2w)
+
+    @property
+    def class_weights(self):
+        return self._class_weights
