@@ -36,10 +36,12 @@ def parse_arguments():
     parser.add_argument('--from', default=0, type=int, dest='FROM')
     parser.add_argument('--batch-size', default=DEFAULT_BATCH, type=int, dest='BATCH')
     parser.add_argument('--cutoff', default=None, type=int, dest='CUTOFF')
+    parser.add_argument('--val-cutoff', default=None, type=int, dest='VAL_CUTOFF')
     parser.add_argument('--vocab-min', default=DEFAULT_VOCAB_MIN, type=int, dest='VMIN')
     parser.add_argument('--mode', default='word', dest='MODE')
     parser.add_argument('--connector', default=1000, type=int, dest='CONN')
     parser.add_argument('--type', default='vgg', dest='TYPE')
+    parser.add_argument('--pretrained', default=None, dest='PRETRAINED')
 
     return parser.parse_args()
 
@@ -50,7 +52,8 @@ def main(args):
     val_img = utils.get_image_paths(args.VAL_DIR)
     if args.CUTOFF is not None:
         train_img = train_img[:args.CUTOFF]
-        val_img = val_img[:args.CUTOFF]
+    if args.VAL_CUTOFF is not None:
+        val_img = val_img[:args.VAL_CUTOFF]
 
     print('Reading captions...')
     train_docs = utils.get_captions(os.path.join(args.TRAIN_DIR, 'captions.txt'), train_img)
