@@ -71,7 +71,7 @@ def decode_rnn(step_function, inputs, initial_states, timesteps):
     last_output = output_ta.read(last_time - 1)
 
     axes = [1, 0] + list(range(2, len(outputs.get_shape())))
-    outputs = tf.transpose(outputs, axes)
+    # outputs = tf.transpose(outputs, axes)
     # last_output._uses_learning_phase = uses_learning_phase
     return last_output, outputs, new_states
 
