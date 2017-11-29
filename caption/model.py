@@ -112,11 +112,11 @@ class CaptionModel:
         callbacks = [CaptionCallback(self, monitor='loss', samples=img_paths[:5] + val_img[:5]),
                      EarlyStopping(monitor='loss', patience=5, verbose=1),
                      CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
-        if K.backend() == 'tensorflow':
-            # noinspection PyTypeChecker
-            callbacks.append(TensorBoard(log_dir=self.save_dir,
-                                         batch_size=batch_size,
-                                         write_images=True))
+        # if K.backend() == 'tensorflow':
+        #     # noinspection PyTypeChecker
+        #     callbacks.append(TensorBoard(log_dir=self.save_dir,
+        #                                  batch_size=batch_size,
+        #                                  write_images=True))
 
         _gen = self._generate_batch(img_paths, captions, batch_size)
         _val_gen = self._generate_batch(val_img, val_captions, batch_size)
@@ -244,41 +244,3 @@ class CaptionModel:
                  sentence_len=sentence_len, dropout=dropout, save_dir=save_dir)
         cm.model = model
         return cm
-
-
-class DirectCaptionModel(CaptionModel):
-    def build(self, readout=False):
-        self.model = Sequential()
-
-        out_row, out_col = self.img_size
-        for i, cl in enumerate(self.conv_layers):
-            if i == 0:
-                self.model.add(Conv2D(
-                    cl['filters'], cl['kernel'], strides=cl['strides'],
-                    activation='relu', input_shape=(self.img_size[0], self.img_size[1], 3),
-                    padding='same'
-                ))
-            else:
-                self.model.add(Conv2D(
-                    cl['filters'], cl['kernel'], strides=cl['strides'],
-                    activation='relu', padding='same'
-                ))
-            if 'pool' in cl.keys():
-                self.model.add(MaxPooling2D(cl['pool']))
-                out_col /= cl['pool']
-                out_row /= cl['pool']
-            if 'dense' in cl.keys():
-                self.model.add(Flatten())
-                self.model.add(Dense(cl['dense'], activation='hard_sigmoid'))
-                break
-        self.model.add(Dense(self.connector_dim, activation='hard_sigmoid'))
-        self.model.add(RepeatVector(self.sentence_len))
-
-        for i, ll in enumerate(self.lstm_layers):
-            self.model.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
-                                recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                                recurrent_dropout=self.dropout, implementation=2, unroll=False))
-
-        self.model.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True,
-                            recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                            recurrent_dropout=self.dropout, implementation=2, unroll=False))

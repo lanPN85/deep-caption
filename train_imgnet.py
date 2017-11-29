@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from keras.optimizers import Adam
+from keras.optimizers import Adam, RMSprop
 
 import os
 import nltk
@@ -78,7 +78,7 @@ def main(args):
     model.summary()
 
     print('Compiling...')
-    model.compile(Adam(lr=args.LR))
+    model.compile(RMSprop(lr=args.LR))
 
     print('Starting training...')
     try:

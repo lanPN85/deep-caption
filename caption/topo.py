@@ -4,8 +4,6 @@ from keras.models import Sequential
 from keras.layers import Flatten, LSTM, Dense, TimeDistributed
 from .layers import DecoderLSTM
 
-from .topologies import LSTM1
-
 
 def vgg_imgnet_decode(caption_model):
     model = Sequential()
