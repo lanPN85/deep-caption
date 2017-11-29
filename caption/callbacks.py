@@ -15,7 +15,7 @@ class CaptionCallback(Callback):
             print('Sample captions:')
             for s in self._samples:
                 c = self._model.caption(s)
-                print(' %s' % c)
+                print('[%s] %s' % (s, c))
 
         if logs[self._monitor] < self._best:
             self._best = logs[self._monitor]

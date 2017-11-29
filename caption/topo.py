@@ -46,6 +46,11 @@ def resnet_imgnet_decode(caption_model):
                           dropout=caption_model.dropout,
                           recurrent_dropout=caption_model.dropout,
                           activation='tanh'))
+    model.add(LSTM(caption_model.connector_dim,
+                   dropout=caption_model.dropout,
+                   recurrent_dropout=caption_model.dropout,
+                   activation='tanh', return_sequences=True
+                   ))
     model.add(TimeDistributed(Dense(caption_model.vocab.size,
                                     activation='softmax')))
 

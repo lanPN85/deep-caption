@@ -110,13 +110,7 @@ class CaptionModel:
         per_epoch = math.ceil(len(captions) / batch_size)
         val_per_epoch = math.ceil(len(val_captions) / batch_size)
         callbacks = [CaptionCallback(self, monitor='loss', samples=img_paths[:5] + val_img[:5]),
-                     EarlyStopping(monitor='loss', patience=5, verbose=1),
                      CSVLogger(os.path.join(self.save_dir, 'epochs.csv'))]
-        # if K.backend() == 'tensorflow':
-        #     # noinspection PyTypeChecker
-        #     callbacks.append(TensorBoard(log_dir=self.save_dir,
-        #                                  batch_size=batch_size,
-        #                                  write_images=True))
 
         _gen = self._generate_batch(img_paths, captions, batch_size)
         _val_gen = self._generate_batch(val_img, val_captions, batch_size)
