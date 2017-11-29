@@ -15,7 +15,8 @@ def vgg_imgnet_decode(caption_model):
                     activation='relu'))
     # depth = int(caption_model.connector_dim / caption_model.vocab.size)
     # model.add(Reshape((caption_model.vocab.size, depth)))
-    model.add(DecoderLSTM(caption_model.connector_dim,
+    model.add(DecoderLSTM(None,
+                          caption_model.connector_dim,
                           caption_model.sentence_len,
                           dropout=caption_model.dropout,
                           recurrent_dropout=caption_model.dropout,
@@ -41,7 +42,8 @@ def resnet_imgnet_decode(caption_model):
                     activation='relu'))
     # depth = int(caption_model.connector_dim / caption_model.vocab.size)
     # model.add(Reshape((caption_model.vocab.size, depth)))
-    model.add(DecoderLSTM(caption_model.connector_dim,
+    model.add(DecoderLSTM(None,
+                          caption_model.connector_dim,
                           caption_model.sentence_len,
                           dropout=caption_model.dropout,
                           recurrent_dropout=caption_model.dropout,

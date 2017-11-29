@@ -149,9 +149,15 @@ class DecoderLSTMCell(LSTMCell):
                 h._uses_learning_phase = True
         return h, [h, c]
 
+    def get_config(self):
+        base_config = super().get_config()
+        base_config['units'] = self.units
+        return base_config
+
 
 class DecoderLSTM(RNN):
-    def __init__(self, units, output_length,
+    def __init__(self, cell,
+                 units, output_length=30,
                  activation='tanh',
                  recurrent_activation='hard_sigmoid',
                  use_bias=True,
@@ -291,3 +297,12 @@ class DecoderLSTM(RNN):
                     for dim in self.cell.state_size]
         else:
             return [K.tile(initial_state, [1, self.cell.state_size])]
+
+    def get_config(self):
+        base_config = super().get_config()
+        base_config['output_length'] = self.output_length
+        base_config['units'] = self.cell.units
+        base_config.pop('stateful')
+        base_config.pop('return_sequences')
+
+        return base_config

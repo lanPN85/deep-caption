@@ -76,6 +76,7 @@ def main(args):
                          connector_dim=args.CONN)
     model.model = MAP[args.TYPE](model)
     model.summary()
+    model.save()
 
     print('Compiling...')
     model.compile(RMSprop(lr=args.LR))
