@@ -1,7 +1,7 @@
 from keras.applications.vgg16 import VGG16
 from keras.applications.resnet50 import ResNet50
 from keras.models import Sequential
-from keras.layers import Flatten, Reshape, Dense, TimeDistributed
+from keras.layers import Flatten, LSTM, Dense, TimeDistributed
 from .layers import DecoderLSTM
 
 from .topologies import LSTM1
@@ -22,6 +22,11 @@ def vgg_imgnet_decode(caption_model):
                           dropout=caption_model.dropout,
                           recurrent_dropout=caption_model.dropout,
                           activation='tanh'))
+    model.add(LSTM(caption_model.connector_dim,
+                   dropout=caption_model.dropout,
+                   recurrent_dropout=caption_model.dropout,
+                   activation='tanh', return_sequences=True
+                   ))
     model.add(TimeDistributed(Dense(caption_model.vocab.size,
                                     activation='softmax')))
 
