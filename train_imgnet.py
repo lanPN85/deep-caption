@@ -71,7 +71,7 @@ def main(args):
     vocab.build(train_docs, wmin=args.VMIN)
 
     print('Creating model...')
-    model = CaptionModel(None, None, vocab, IMAGE_SIZE, sentence_len=args.SENTENCE_LEN,
+    model = CaptionModel(vocab, IMAGE_SIZE, sentence_len=args.SENTENCE_LEN,
                          dropout=args.DROPOUT, save_dir=args.MODEL_DIR, img_loader=utils.load_image_vgg,
                          connector_dim=args.CONN)
     model.model = MAP[args.TYPE](model)
