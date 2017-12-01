@@ -1,8 +1,6 @@
-from keras.layers import Conv2D, MaxPooling2D, Reshape, LSTM, Dense, Dropout, Flatten, RepeatVector
-from keras.models import Sequential, Model
+from keras.models import Sequential
 from keras.optimizers import RMSprop
 from keras.callbacks import EarlyStopping, CSVLogger, TensorBoard
-from recurrentshop import RecurrentSequential, LSTMCell
 
 import math
 import numpy as np
@@ -10,7 +8,6 @@ import os
 import json
 import pickle
 import keras.models
-import keras.backend as K
 
 from . import utils
 from .callbacks import CaptionCallback
@@ -19,12 +16,10 @@ from .layers import *
 
 
 class CaptionModel:
-    def __init__(self, conv_layers, lstm_layers, vocab, img_size=(128, 128),
+    def __init__(self, vocab, img_size=(128, 128),
                  sentence_len=20, dropout=0.0, connector_dim=1000, save_dir='models/default',
                  img_loader=utils.load_image):
         self.img_size = img_size
-        self.conv_layers = conv_layers
-        self.lstm_layers = lstm_layers
         self.sentence_len = sentence_len
         self.save_dir = save_dir
         self.dropout = dropout
@@ -33,71 +28,6 @@ class CaptionModel:
         self.img_loader = img_loader
 
         self.model = Sequential()
-
-    def build(self, readout=False):
-        self.model = Sequential()
-
-        out_row, out_col = self.img_size
-        conv_depth = None
-        total_size = -1
-        print(' BUilding CNN layers...')
-        for i, cl in enumerate(self.conv_layers):
-            if i == 0:
-                self.model.add(Conv2D(
-                    cl['filters'], cl['kernel'], strides=cl['strides'],
-                    activation='relu', input_shape=(self.img_size[0], self.img_size[1], 3),
-                    padding='same'
-                ))
-            else:
-                self.model.add(Conv2D(
-                    cl['filters'], cl['kernel'], strides=cl['strides'],
-                    activation='relu', padding='same'
-                ))
-            if 'pool' in cl.keys():
-                self.model.add(MaxPooling2D(cl['pool']))
-                out_col /= cl['pool']
-                out_row /= cl['pool']
-            if 'dense' in cl.keys():
-                self.model.add(Flatten())
-                self.model.add(Dense(cl['dense'], activation='hard_sigmoid'))
-                conv_depth = cl['dense']
-                break
-
-        print(' Adding connector...')
-        conv_depth = self.conv_layers[-1]['filters'] if conv_depth is None else conv_depth
-        if len(self.lstm_layers) > 0:
-            self.model.add(Reshape((int(out_row * out_col), conv_depth)))
-        else:
-            self.model.add(Dense(self.connector_dim))
-
-        rnn = RecurrentSequential(decode=True, output_length=self.sentence_len,
-                                  readout=readout, implementation=2)
-
-        for i, ll in enumerate(self.lstm_layers[:-1]):
-            self.model.add(LSTM(ll['units'], activation='tanh', return_sequences=True,
-                                recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                                recurrent_dropout=self.dropout, implementation=2, unroll=True))
-            # rnn.add(Dropout(self.dropout))
-            # rnn.add(LSTMCell(ll['units'], activation='tanh'))
-
-        if len(self.lstm_layers) > 0:
-            self.model.add(LSTM(self.lstm_layers[-1]['units'], activation='tanh', return_sequences=False,
-                                recurrent_activation='hard_sigmoid', dropout=self.dropout,
-                                recurrent_dropout=self.dropout, implementation=2, unroll=True))
-
-        # rnn.add(Dropout(self.dropout))
-        # rnn.add(LSTMCell(self.lstm_layers[-1]['units'], activation='tanh'))
-
-        if readout:
-            assert self.lstm_layers[-1]['units'] == self.vocab.size
-
-        print(' Building decoder...')
-        rnn.add(Dropout(self.dropout))
-        rnn.add(LSTMCell(self.vocab.size, activation='softmax'))
-        # rnn.add(LSTM(self.vocab.size, activation='softmax', return_sequences=True))
-        # rnn.add(LSTMDecoderCell(units=self.vocab.size, hidden_dim=self.vocab.size, activation='softmax'))
-        self.model.add(rnn)
-        # self.model = self.seq_model
 
     def compile(self, optimizer=RMSprop()):
         self.model.compile(optimizer, loss='categorical_crossentropy',
@@ -154,7 +84,6 @@ class CaptionModel:
             else:
                 _im[i, :, :, :] = img
 
-        m = np.zeros((len(images), self.img_size[0], self.img_size[1], 3))
         probs = self.model.predict(_im, batch_size=batch_size, verbose=verbose)
         word_idx = np.argmax(probs, axis=-1)
         captions = []
@@ -212,7 +141,13 @@ class CaptionModel:
         f2 = open(os.path.join(self.save_dir, 'vocab.pkl'), 'wb')
 
         self.model.save(os.path.join(self.save_dir, 'model.hdf5'))
-        configs = (self.img_size, self.dropout, self.sentence_len, self.save_dir, self.conv_layers, self.lstm_layers)
+        configs = {
+            'img_size': self.img_size,
+            'sentence_len': self.sentence_len,
+            'dropout': self.dropout,
+            'img_loader': self.img_loader,
+            'save_dir': self.save_dir
+        }
         pickle.dump(configs, f1)
         pickle.dump(self.vocab, f2)
         f1.close()
@@ -223,18 +158,34 @@ class CaptionModel:
         f1 = open(os.path.join(load_dir, 'configs.pkl'), 'rb')
         f2 = open(os.path.join(load_dir, 'vocab.pkl'), 'rb')
 
-        img_size, dropout, sentence_len, save_dir, conv_layers, lstm_layers = pickle.load(f1)
+        configs = pickle.load(f1)
         vocab = pickle.load(f2)
         model = keras.models.load_model(os.path.join(load_dir, 'model.hdf5'),
                                         custom_objects={
-                                            'RecurrentSequential': RecurrentSequential,
                                             'DecoderLSTM': DecoderLSTM,
                                             'DecoderLSTMCell': DecoderLSTMCell
                                         })
         f1.close()
         f2.close()
 
-        cm = cls(conv_layers, lstm_layers, vocab, img_size=img_size,
-                 sentence_len=sentence_len, dropout=dropout, save_dir=save_dir)
+        cm = cls(vocab, **configs)
+        cm.model = model
+        return cm
+
+    @classmethod
+    def migrate(cls, model_path, vocab_path, **configs):
+        f = open(vocab_path, 'rb')
+        vocab = pickle.load(f)
+        f.close()
+
+        model = keras.models.load_model(
+            model_path,
+            custom_objects={
+                'DecoderLSTM': DecoderLSTM,
+                'DecoderLSTMCell': DecoderLSTMCell
+            }
+        )
+
+        cm = cls(vocab, **configs)
         cm.model = model
         return cm

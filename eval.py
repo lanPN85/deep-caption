@@ -1,6 +1,7 @@
 import os
-import matplotlib.pyplot as plt
+import numpy as np
 
+from PIL import Image
 from argparse import ArgumentParser
 
 from caption import utils, CaptionModel
@@ -12,6 +13,7 @@ def parse_arguments():
     parser.add_argument(dest='MODEL')
     parser.add_argument('--output', '-o', default=None, dest='OUT')
     parser.add_argument('--image-dir', '-d', default=None, dest='DATA')
+    parser.add_argument('--annotation', default='./data/coco/captions_val2014.json', dest='ANN')
     parser.add_argument('--show', action='store_true', dest='SHOW')
 
     return parser.parse_args()
@@ -26,7 +28,6 @@ def main(args):
         print('Enter a file path to display it and the predicted caption.')
         print('Press Ctrl+C or Ctrl+D to exit.')
         try:
-            plt.ion()
             while True:
                 cwd = os.getcwd()
                 query = input('%s> ' % cwd)
@@ -36,11 +37,27 @@ def main(args):
                 caption = model.caption(query)
                 print('-> %s' % caption)
                 if args.SHOW:
-                    mat = utils.load_image(query, normalize=False)
-                    plt.imshow(mat)
-
+                    with Image.open(query) as img:
+                        img.show()
         except (KeyboardInterrupt, EOFError):
             print()
+    elif args.DATA:
+        print('Fetching metadata...')
+        img_paths = utils.get_image_paths(args.DATA)
+        img_ids = utils.get_image_ids(args.ANN, img_paths)
+
+        if not args.OUT:
+            print('Generating captions')
+            captions = model.caption_batch(img_paths, image_ids=img_ids, batch_size=10)
+            try:
+                for cap, img in zip(captions, img_paths):
+                    print('[%s]\n%s' % (img, cap))
+                    if args.SHOW:
+                        with Image.open(img) as image:
+                            image.show()
+                    input('Next image...')
+            except (KeyboardInterrupt, EOFError):
+                print()
 
 
 if __name__ == '__main__':

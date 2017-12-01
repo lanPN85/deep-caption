@@ -49,7 +49,7 @@ def get_image_ids(annotation_path, img_paths):
             fname = os.path.split(img)[-1]
             ids.append(name2id[fname])
 
-        return ids
+    return ids
 
 
 def get_captions(captions_path, img_paths):
