@@ -8,15 +8,7 @@ assert K.backend() == 'tensorflow'
 
 
 def decode_rnn(step_function, inputs, initial_states, timesteps):
-    ndim = len(inputs.get_shape())
-    # if ndim < 3:
-    #     raise ValueError('Input should be at least 3D.')
     constants = []
-
-    # Transpose to time-major, i.e.
-    # from (batch, time, ...) to (time, batch, ...)
-    # axes = [1, 0] + list(range(2, ndim))
-    # inputs = tf.transpose(inputs, axes)
 
     states = tuple(initial_states)
 
@@ -26,26 +18,9 @@ def decode_rnn(step_function, inputs, initial_states, timesteps):
         dtype=outputs.dtype,
         size=time_steps,
         tensor_array_name='output_ta')
-    # input_ta = K.tensor_array_ops.TensorArray(
-    #     dtype=inputs.dtype,
-    #     size=time_steps,
-    #     tensor_array_name='input_ta')
     time = K.constant(0, dtype='int32', name='time')
 
-    # input_ta = input_ta.write(time, inputs)
-
     def _step(_time, output_ta_t, input_t, *states):
-        """RNN decoder step function.
-
-        # Arguments
-            time: Current timestep value.
-            output_ta_t: TensorArray.
-            *states: List of states.
-
-        # Returns
-            Tuple: `(time + 1,output_ta_t) + tuple(new_states)`
-        """
-        # current_input = input_ta_t.read(time)
         current_input = input_t
         output, _new_states = step_function(current_input,
                                             tuple(states) +
@@ -72,7 +47,6 @@ def decode_rnn(step_function, inputs, initial_states, timesteps):
 
     axes = [1, 0] + list(range(2, len(outputs.get_shape())))
     outputs = tf.transpose(outputs, axes)
-    # last_output._uses_learning_phase = uses_learning_phase
     return last_output, outputs, new_states
 
 

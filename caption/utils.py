@@ -52,20 +52,23 @@ def get_image_ids(annotation_path, img_paths):
     return ids
 
 
-def get_captions(captions_path, img_paths):
-    path2cap = {}
-    with open(captions_path, 'rt') as f:
-        for line in f:
-            cols = line.split('\t')
-            if len(cols) < 2:
-                continue
-            path2cap[cols[0]] = cols[1].strip()
-
+def get_image_and_captions(annotations_path, img_paths, root_dir):
+    id2path = {}
+    new_paths = []
     captions = []
-    for ip in img_paths:
-        fname = os.path.split(ip)[1]
-        captions.append(path2cap[fname])
-    return captions
+    with open(annotations_path, 'rt') as f:
+        js = json.load(f)
+        for im in js['images']:
+            _path = os.path.join(root_dir, im['file_name'])
+            if _path in img_paths:
+                id2path[im['id']] = _path
+
+        for cap in js['annotations']:
+            if cap['image_id'] in id2path.keys():
+                captions.append(cap['caption'])
+                new_paths.append(id2path[cap['image_id']])
+
+    return captions, new_paths
 
 
 def char_tokenize(sentence):

@@ -30,6 +30,8 @@ def parse_arguments():
     parser.add_argument('--dropout', default=DEFAULT_DROPOUT, type=float, dest='DROPOUT')
     parser.add_argument('--train-dir', default='./data/coco/train2014', dest='TRAIN_DIR')
     parser.add_argument('--val-dir', default='./data/coco/val2014', dest='VAL_DIR')
+    parser.add_argument('--val-anno', default='./data/coco/captions_val2014.json', dest='VAL_ANN')
+    parser.add_argument('--train-anno', default='./data/coco/captions_train2014.json', dest='TRAIN_ANN')
     parser.add_argument('--model-dir', '-md', default='./models/default', dest='MODEL_DIR')
     parser.add_argument('--sent-len', '-sl', default=DEFAULT_SENTENCE_LEN, type=int, dest='SENTENCE_LEN')
     parser.add_argument('--epochs', '-e', default=DEFAULT_EPOCHS, type=int, dest='EPOCHS')
@@ -56,8 +58,10 @@ def main(args):
         val_img = val_img[:args.VAL_CUTOFF]
 
     print('Reading captions...')
-    train_docs = utils.get_captions(os.path.join(args.TRAIN_DIR, 'captions.txt'), train_img)
-    val_docs = utils.get_captions(os.path.join(args.VAL_DIR, 'captions.txt'), val_img)
+    train_docs, train_img = utils.get_image_and_captions(args.TRAIN_ANN, train_img, args.TRAIN_DIR)
+    val_docs, val_img = utils.get_image_and_captions(args.VAL_ANN, val_img, args.VAL_DIR)
+    print(' Num. train captions: %d' % len(train_docs))
+    print(' Num. validation captions: %d' % len(val_docs))
 
     print('Building vocabulary...')
     if args.MODE == 'word':
