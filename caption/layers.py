@@ -149,6 +149,37 @@ class DecoderLSTMCell(LSTMCell):
                 h._uses_learning_phase = True
         return h, [h, c]
 
+    def _generate_dropout_mask(self, inputs, training=None):
+        if 0 < self.dropout < 1:
+            ones = K.ones_like(inputs)
+
+            def dropped_inputs():
+                return K.dropout(ones, self.dropout)
+
+            self._dropout_mask = [K.in_train_phase(
+                dropped_inputs,
+                ones,
+                training=training)
+                for _ in range(4)]
+        else:
+            self._dropout_mask = None
+
+    def _generate_recurrent_dropout_mask(self, inputs, training=None):
+        if 0 < self.recurrent_dropout < 1:
+            ones = K.ones_like(K.reshape(inputs[:, 0], (-1, 1)))
+            ones = K.tile(ones, (1, self.units))
+
+            def dropped_inputs():
+                return K.dropout(ones, self.dropout)
+
+            self._recurrent_dropout_mask = [K.in_train_phase(
+                dropped_inputs,
+                ones,
+                training=training)
+                for _ in range(4)]
+        else:
+            self._recurrent_dropout_mask = None
+
     def get_config(self):
         base_config = super().get_config()
         base_config['units'] = self.units
@@ -247,11 +278,8 @@ class DecoderLSTM(RNN):
 
         return input_shape[0], self.output_length, self.cell.units
 
-    def call(self,
-             inputs,
-             mask=None,
-             training=None,
-             initial_state=None,
+    def call(self, inputs, mask=None,
+             training=None, initial_state=None,
              constants=None):
         if isinstance(inputs, list):
             inputs = inputs[0]
@@ -259,6 +287,9 @@ class DecoderLSTM(RNN):
             pass
         else:
             initial_state = self.get_initial_state(inputs)
+
+        self.cell._generate_dropout_mask(inputs, training=training)
+        self.cell._generate_recurrent_dropout_mask(inputs, training=training)
 
         if len(initial_state) != len(self.states):
             raise ValueError('Layer has ' + str(len(self.states)) +

@@ -47,10 +47,10 @@ def main(args):
         img_ids = utils.get_image_ids(args.ANN, img_paths)
 
         if not args.OUT:
-            print('Generating captions')
-            captions = model.caption_batch(img_paths, image_ids=img_ids, batch_size=10)
+            print('Generating captions...')
             try:
-                for cap, img in zip(captions, img_paths):
+                for img in img_paths:
+                    cap = model.caption(img)
                     print('[%s]\n%s' % (img, cap))
                     if args.SHOW:
                         with Image.open(img) as image:

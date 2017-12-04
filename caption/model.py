@@ -77,14 +77,9 @@ class CaptionModel:
 
     def caption_batch(self, images, image_ids=None, to_json=False,
                       json_file=None, batch_size=32, verbose=1):
-        _im = np.zeros((len(images), self.img_size[0], self.img_size[1], 3))
-        for i, img in enumerate(images):
-            if type(img) == str:
-                _im[i, :, :, :] = self.img_loader(img, self.img_size)
-            else:
-                _im[i, :, :, :] = img
-
-        probs = self.model.predict(_im, batch_size=batch_size, verbose=verbose)
+        steps = math.ceil(len(images) / batch_size)
+        probs = self.model.predict_generator(self._generate_image_batch(images, batch_size=batch_size),
+                                             steps, verbose=verbose, max_queue_size=2)
         word_idx = np.argmax(probs, axis=-1)
         captions = []
         for i in range(len(images)):
@@ -123,7 +118,6 @@ class CaptionModel:
                 _captions = tokens[i - batch_size:i]
 
                 for j, _path in enumerate(_img_paths):
-                    # _img_mat[j, :, :] = utils.load_image(_path, size=self.img_size)
                     _img_mat[j, :, :] = self.img_loader(_path, self.img_size)
 
                 for j, _caption in enumerate(_captions):
@@ -131,6 +125,16 @@ class CaptionModel:
                     _cap_mask[j, :] = self.vocab.mask_sentence(_caption, length=self.sentence_len)
 
                 yield _img_mat, _cap_mat, _cap_mask
+
+    def _generate_image_batch(self, img_paths, batch_size):
+        _img_mat = np.zeros((batch_size, self.img_size[0], self.img_size[1], 3))
+        while True:
+            for i in range(batch_size, len(img_paths), batch_size):
+                _img_paths = img_paths[i - batch_size:i]
+                for j, _path in enumerate(_img_paths):
+                    _img_mat[j, :, :] = self.img_loader(_path, self.img_size)
+
+            yield _img_mat
 
     def summary(self):
         self.model.summary()
