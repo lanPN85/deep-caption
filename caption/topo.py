@@ -5,10 +5,10 @@ from keras.layers import Flatten, LSTM, Dense, TimeDistributed
 from .layers import DecoderLSTM
 
 
-def vgg_imgnet_decode(caption_model):
+def vgg_imgnet_decode(caption_model, weights='imagenet'):
     model = Sequential()
     base = VGG16(include_top=False, input_shape=(224, 224, 3),
-                 weights='imagenet')
+                 weights=weights)
     model.add(base)
     model.add(Flatten())
     model.add(Dense(caption_model.connector_dim,
@@ -32,10 +32,10 @@ def vgg_imgnet_decode(caption_model):
     return model
 
 
-def resnet_imgnet_decode(caption_model):
+def resnet_imgnet_decode(caption_model, weights='imagenet'):
     model = Sequential()
     base = ResNet50(include_top=False, input_shape=(224, 224, 3),
-                    weights='imagenet')
+                    weights=weights)
     model.add(base)
     model.add(Flatten())
     model.add(Dense(caption_model.connector_dim,

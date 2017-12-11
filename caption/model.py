@@ -13,6 +13,7 @@ from . import utils
 from .callbacks import CaptionCallback
 from .vocab import Vocab
 from .layers import *
+from .postprocess import post_process
 
 
 class CaptionModel:
@@ -55,7 +56,7 @@ class CaptionModel:
                                                 steps=steps, max_queue_size=3)
         return metrics
 
-    def caption(self, image):
+    def caption(self, image, postprocess=True):
         if type(image) == str:
             return self.caption(self.img_loader(image, self.img_size))
         else:
@@ -73,23 +74,40 @@ class CaptionModel:
                 if word == Vocab.END_TOKEN:
                     break
                 caption += word + ' '
+
+            if postprocess:
+                caption = post_process(caption)
             return caption
 
     def caption_batch(self, images, image_ids=None, to_json=False,
-                      json_file=None, batch_size=32, verbose=1):
-        steps = math.ceil(len(images) / batch_size)
-        probs = self.model.predict_generator(self._generate_image_batch(images, batch_size=batch_size),
-                                             steps, verbose=verbose, max_queue_size=2)
-        word_idx = np.argmax(probs, axis=-1)
+                      json_file=None, batch_size=32, postprocess=True):
         captions = []
-        for i in range(len(images)):
-            _caption = ''
-            for idx in word_idx[i, :]:
-                word = self.vocab[idx]
-                if word == Vocab.END_TOKEN:
-                    break
-                _caption += word + ' '
-            captions.append(_caption)
+
+        _img_mat = np.zeros((batch_size, self.img_size[0], self.img_size[1], 3))
+        img_len = len(images)
+
+        for i in range(batch_size, img_len + 1, batch_size):
+            print(' Caption %d/%d...' % (i, img_len), end='\r')
+
+            _images = images[i-batch_size:i]
+            if len(_images) != batch_size:
+                _img_mat = np.zeros((len(_images), self.img_size[0], self.img_size[1], 3))
+            for j, _path in enumerate(_images):
+                _img_mat[j, :, :] = self.img_loader(_path, self.img_size)
+            probs = self.model.predict_on_batch(_img_mat)
+            word_idx = np.argmax(probs, axis=-1)
+
+            for j in range(len(_images)):
+                _caption = ''
+                for idx in word_idx[j, :]:
+                    word = self.vocab[idx]
+                    if word == Vocab.END_TOKEN:
+                        break
+                    _caption += word + ' '
+                if postprocess:
+                    _caption = post_process(_caption)
+                captions.append(_caption)
+        print()
 
         if not to_json:
             return captions
@@ -99,6 +117,7 @@ class CaptionModel:
             for _caption, _id in zip(captions, image_ids):
                 jd.append({'image_id': _id, 'caption': _caption})
             if json_file is not None:
+                print(' Saving...')
                 with open(json_file, 'wt') as f:
                     json.dump(jd, f)
 

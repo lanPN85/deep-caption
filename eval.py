@@ -59,6 +59,11 @@ def main(args):
             except (KeyboardInterrupt, EOFError):
                 print()
 
+        else:
+            print('Generating captions to %s ...' % args.OUT)
+            model.caption_batch(img_paths, img_ids, to_json=True,
+                                json_file=args.OUT, batch_size=100)
+
 
 if __name__ == '__main__':
     main(parse_arguments())

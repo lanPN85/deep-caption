@@ -5,7 +5,6 @@ import os
 import nltk
 
 from caption import CaptionModel, Vocab
-from caption.topologies import *
 from caption.topo import *
 from caption import utils
 
@@ -44,6 +43,7 @@ def parse_arguments():
     parser.add_argument('--connector', default=1000, type=int, dest='CONN')
     parser.add_argument('--type', default='vgg', dest='TYPE')
     parser.add_argument('--pretrained', default=None, dest='PRETRAINED')
+    parser.add_argument('--weight', default='imagenet', dest='WEIGHT')
 
     return parser.parse_args()
 
@@ -63,27 +63,33 @@ def main(args):
     print(' Num. train captions: %d' % len(train_docs))
     print(' Num. validation captions: %d' % len(val_docs))
 
-    print('Building vocabulary...')
-    if args.MODE == 'word':
-        tokenizer = nltk.word_tokenize
-    elif args.MODE == 'char':
-        tokenizer = utils.char_tokenize
+    if not args.PRETRAINED:
+        print('Building vocabulary...')
+        if args.MODE == 'word':
+            tokenizer = nltk.word_tokenize
+        elif args.MODE == 'char':
+            tokenizer = utils.char_tokenize
+        else:
+            raise ValueError('Unknown mode %s.' % args.MODE)
+
+        vocab = Vocab(tokenizer=tokenizer)
+        vocab.build(train_docs, wmin=args.VMIN)
+
+        print('Creating model...')
+        model = CaptionModel(vocab, IMAGE_SIZE, sentence_len=args.SENTENCE_LEN,
+                             dropout=args.DROPOUT, save_dir=args.MODEL_DIR, img_loader=utils.load_image_vgg,
+                             connector_dim=args.CONN)
+        _wstr = args.WEIGHT if args.WEIGHT == 'imagenet' else None
+        model.model = MAP[args.TYPE](model, weights=_wstr)
+        model.summary()
+        model.save()
+
+        print('Compiling...')
+        model.compile(RMSprop(lr=args.LR))
     else:
-        raise ValueError('Unknown mode %s.' % args.MODE)
-
-    vocab = Vocab(tokenizer=tokenizer)
-    vocab.build(train_docs, wmin=args.VMIN)
-
-    print('Creating model...')
-    model = CaptionModel(vocab, IMAGE_SIZE, sentence_len=args.SENTENCE_LEN,
-                         dropout=args.DROPOUT, save_dir=args.MODEL_DIR, img_loader=utils.load_image_vgg,
-                         connector_dim=args.CONN)
-    model.model = MAP[args.TYPE](model)
-    model.summary()
-    model.save()
-
-    print('Compiling...')
-    model.compile(RMSprop(lr=args.LR))
+        model = CaptionModel.load(args.PRETRAINED)
+        assert model.img_size == IMAGE_SIZE
+        model.summary()
 
     print('Starting training...')
     try:
