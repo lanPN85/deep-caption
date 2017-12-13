@@ -83,14 +83,14 @@ def main(args):
         model.model = MAP[args.TYPE](model, weights=_wstr)
         model.summary()
         model.save()
-
-        print('Compiling...')
-        model.compile(RMSprop(lr=args.LR))
     else:
+        print('Loading model from %s ...' % args.PRETRAINED)
         model = CaptionModel.load(args.PRETRAINED)
         assert model.img_size == IMAGE_SIZE
         model.summary()
 
+    print('Compiling...')
+    model.compile(RMSprop(lr=args.LR))
     print('Starting training...')
     try:
         model.train(train_img, train_docs, val_img, val_docs, epochs=args.EPOCHS,

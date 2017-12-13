@@ -112,7 +112,11 @@ class CaptionModel:
         if not to_json:
             return captions
         else:
-            assert len(captions) == len(image_ids)
+            if len(captions) > len(image_ids):
+                captions = captions[:len(image_ids)]
+            elif len(captions) < len(image_ids):
+                raise ValueError('%d captions with %d ids.' % (len(captions), len(image_ids)))
+
             jd = []
             for _caption, _id in zip(captions, image_ids):
                 jd.append({'image_id': _id, 'caption': _caption})

@@ -1,0 +1,3 @@
+./data/coco/val2014/COCO_val2014_000000543393.jpg
+./data/coco/val2014/COCO_val2014_000000031481.jpg
+./data/coco/val2014/COCO_val2014_000000025282.jpg
