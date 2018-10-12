@@ -90,7 +90,7 @@ class COCO:
 
         cats = []
         catToImgs = []
-        if self.dataset['type'] == 'instances':
+        if self.dataset.get('type', None) == 'instances':
             cats = {cat['id']: [] for cat in self.dataset['categories']}
             for cat in self.dataset['categories']:
                 cats[cat['id']] = cat
@@ -267,7 +267,7 @@ class COCO:
         res = COCO()
         res.dataset['images'] = [img for img in self.dataset['images']]
         res.dataset['info'] = copy.deepcopy(self.dataset['info'])
-        res.dataset['type'] = copy.deepcopy(self.dataset['type'])
+        res.dataset['type'] = copy.deepcopy(self.dataset.get('type', None))
         res.dataset['licenses'] = copy.deepcopy(self.dataset['licenses'])
 
         print 'Loading and preparing results...     '
